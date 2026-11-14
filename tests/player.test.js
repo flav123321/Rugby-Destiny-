@@ -45,7 +45,7 @@ test('gabarit hors fourchette ramené', () => {
   const p = createPlayer(input({ positionId: 'pilier-droit', tailleCm: 150, poidsKg: 300 }), createRng(1));
   assert.equal(p.tailleCm, 176); assert.equal(p.poidsKg, 140);
 });
-test('potentiel entre 72 et 97', () => {
-  for (let s = 0; s < 100; s++) { const p = createPlayer(input(), createRng(s)); assert.ok(p.potentiel >= 72 && p.potentiel <= 97); }
+test('potentiel entre 72 et 99', () => {
+  for (let s = 0; s < 100; s++) { const p = createPlayer(input(), createRng(s)); assert.ok(p.potentiel >= 72 && p.potentiel <= 99); }
 });
 test('clampStat', () => { assert.equal(clampStat(120), 100); assert.equal(clampStat(-3), 0); });

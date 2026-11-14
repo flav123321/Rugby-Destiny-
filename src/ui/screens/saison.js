@@ -27,7 +27,8 @@ export function renderMatchsRecents(s) {
   const st = s.saisonStats;
   const niveau = s.phase === 'centre' ? 'Ma saison' : s.pret ? `Prêt en ${s.pret.division}` : 'Top 14';
   const esp = st.espoirs;
-  const resume = blocStats(niveau, st) + (s.phase === 'pro' && !s.pret && esp?.matchs ? blocStats('Espoirs', esp) : '');
+  const resume = blocStats(niveau, st) + (s.phase === 'pro' && !s.pret && esp?.matchs ? blocStats('Espoirs', esp) : '')
+    + (s.phase === 'centre' && st.top14?.matchs ? blocStats('Top 14 (avec les pros)', st.top14) : '');
   if (s.phase === 'centre' || s.pret) return resume + renderListeJeunes(s);
   return renderListe(s, resume);
 }

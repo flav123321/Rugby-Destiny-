@@ -19,7 +19,7 @@ export function progressSeason(player, { minutesJouees = 0, entrainementBonus = 
   const before = overall(player.stats, player.positionId);
   // au-dessus du potentiel (bonus d'événements), la note redescend doucement
   const plafond = before > player.potentiel ? before - 1 : player.potentiel;
-  const mult = (hasTag(player, 'progression+') ? 1.25 : 1);
+  const mult = (hasTag(player, 'progression+') ? 1.25 : 1) * (player.pepite && player.age <= 20 ? 1.8 : player.pepite && player.age <= 22 ? 1.3 : 1);
   const stats = { ...player.stats };
   const gains = {};
   for (const k of STAT_KEYS) {

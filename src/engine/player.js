@@ -27,13 +27,16 @@ export function createPlayer(input, rng) {
     stats[k] = rng.int(30, 52) + bonusPoste;
   }
   for (const p of perso) for (const [k, v] of Object.entries(p.statMods)) stats[k] += v;
+  const pepite = rng.chance(0.1);
+  if (pepite) for (const k of STAT_KEYS) stats[k] += 9; // talent hors norme dès 16 ans
   for (const k of STAT_KEYS) stats[k] = clampStat(stats[k]);
 
   return {
     prenom: prenom.trim(), nom: nom.trim(), age: 16, nationaliteId, positionId,
     tailleCm: clamp(tailleCm, pos.tailleCm), poidsKg: clamp(poidsKg, pos.poidsKg),
     personnaliteIds: [...personnaliteIds],
-    stats, potentiel: rng.int(72, 97), moral: 70, forme: 70,
+    pepite, potentiel: pepite ? rng.int(94, 99) : rng.int(74, 96),
+    stats, moral: 70, forme: 70,
     blessure: null, clubId: null, historique: [],
   };
 }

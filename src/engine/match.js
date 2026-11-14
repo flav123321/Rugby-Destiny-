@@ -7,6 +7,7 @@ const BENCH = { 'pilier-gauche': 1, 'talonneur': 1, 'pilier-droit': 1, 'deuxieme
 /** Sélection du joueur du user pour une journée, face aux vrais joueurs de son poste. */
 export function selectMatchday(club, player, rng) {
   if (!player || player.blessure) return 'non-retenu';
+  if (rng.chance(0.08)) return 'non-retenu'; // repos, gestion, doublons internationaux
   const pos = positionById(player.positionId);
   const titulaires = pos.numeros.length;
   const banc = BENCH[player.positionId] ?? 1;

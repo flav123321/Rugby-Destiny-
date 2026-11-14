@@ -17,6 +17,7 @@ export function header(career) {
     ${crest(p.clubId, 44)}
     <div class="who"><b>${esc(p.prenom)} ${esc(p.nom)}</b>
       <span class="muted">${nat?.drapeau ?? ''} ${p.age} ans · ${esc(pos.label)} · ${esc(clubNom(p.clubId))}</span>
+      ${p.pepite ? '<div><span class="pill">🌟 Pépite</span></div>' : ''}
       ${p.blessure ? `<div><span class="pill red">🚑 ${esc(p.blessure.nom)} · ${p.blessure.semainesRestantes} sem.</span></div>` : ''}
     </div>
     <div class="ovr">${ovr}<small>NOTE</small></div>
@@ -35,7 +36,7 @@ export function historyTable(historique) {
   if (!historique.length) return '<p class="muted">Aucune saison terminée pour l’instant.</p>';
   return `<div class="scroll"><table>
     <tr><th>Saison</th><th>Club / niveau</th><th>Âge</th><th>M</th><th>Tit.</th><th>Essais</th><th>Pts</th><th>Note</th></tr>
-    ${historique.map(h => `<tr><td>${esc(h.saison)}</td><td>${esc(h.club ?? '')}<br><span class="muted">${esc(h.niveau ?? h.categorie ?? '')}${h.classementClub ? ` · ${h.classementClub}e` : ''}${h.championAvecLui ? ' · 🏆' : ''}</span>${h.espoirs ? `<br><span class="muted">+ Espoirs : ${h.espoirs.matchs} m, ${h.espoirs.essais} essais, note ${h.espoirs.noteMoyenne ?? '–'}</span>` : ''}</td>
+    ${historique.map(h => `<tr><td>${esc(h.saison)}</td><td>${esc(h.club ?? '')}<br><span class="muted">${esc(h.niveau ?? h.categorie ?? '')}${h.classementClub ? ` · ${h.classementClub}e` : ''}${h.championAvecLui ? ' · 🏆' : ''}</span>${h.top14?.matchs ? `<br><span class="muted">+ Top 14 : ${h.top14.matchs} m, ${h.top14.essais} essais</span>` : ''}${h.distinctions?.length ? `<br>🏅 ${h.distinctions.map(esc).join(', ')}` : ''}${h.espoirs ? `<br><span class="muted">+ Espoirs : ${h.espoirs.matchs} m, ${h.espoirs.essais} essais, note ${h.espoirs.noteMoyenne ?? '–'}</span>` : ''}</td>
       <td>${h.age}</td><td>${h.matchs}</td><td>${h.titularisations}</td><td>${h.essais}</td><td>${h.points}</td><td>${h.noteMoyenne ?? '–'}</td></tr>`).join('')}
   </table></div>`;
 }

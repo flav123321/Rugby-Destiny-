@@ -60,6 +60,7 @@ export function newCareer(input, seed) {
   if (!clubById(clubId)) throw new Error(`Club inconnu : ${clubId}`);
   const player = { ...createPlayer(rest, rng), clubId };
   const s = newAcademyState(player);
+  if (player.pepite) s.journal = ["Les recruteurs parlent déjà de toi comme d'une pépite."];
   return { version: 1, seed, ...s, clubNom: clubById(clubId).nom, ligue: null, pret: null, contratFin: null, dernierResume: null, rngState: rng.getState() };
 }
 
@@ -158,6 +159,7 @@ function finDeSaison(s, rng) {
     finale: `${clubById(po.finale.home).nom} ${po.finale.scoreHome}-${po.finale.scoreAway} ${clubById(po.finale.away).nom}`,
     relegue: clubById(po.relegue).nom, championAvecLui: !s.pret && po.champion === s.player.clubId,
     niveau: s.pret ? s.pret.division : 'Top 14', tableau: table };
+  resume.distinctions = distinctions(s, resume, rng);
   const { tableau, ...histo } = resume;
   const progressed = progressSeason(s.player, { minutesJouees: s.saisonStats.minutes + (s.saisonStats.espoirs?.minutes ?? 0) / 2 }, rng);
   const player = { ...progressed, age: progressed.age + 1, historique: [...progressed.historique, histo] };
@@ -167,6 +169,20 @@ function finDeSaison(s, rng) {
     return { ...out, pret: null, phase: 'offres', offresContrat: contractOffers(out, rng) };
   }
   return { ...out, phase: 'bilan', phaseApresBilan: 'pro' };
+}
+
+/** Récompenses de fin de saison (Top 14 uniquement). */
+function distinctions(s, r, rng) {
+  if (s.pret) return [];
+  const ovr = overall(s.player.stats, s.player.positionId);
+  const d = [];
+  const moy = r.noteMoyenne ?? 0;
+  const deja = (t) => s.player.historique.some(h => h.distinctions?.includes(t));
+  if (s.player.age <= 21 && r.matchs >= 10 && moy >= 6.3 && !deja('Révélation du Top 14')) d.push('Révélation du Top 14');
+  if (r.titularisations >= 15 && moy >= 7) d.push('Équipe type du Top 14');
+  if (ovr >= 87 && r.titularisations >= 15 && moy >= 7.3 && rng.chance(0.4)) d.push('Meilleur joueur du Top 14');
+  if (s.player.age >= 21 && ovr >= 93 && r.titularisations >= 16 && moy >= 7.6 && rng.chance(0.35)) d.push('Meilleur joueur du monde World Rugby');
+  return d;
 }
 
 export function choose(state, choixIndex) {
@@ -183,6 +199,7 @@ export function acceptOffer(state, i) {
   const o = state.offresContrat?.[i];
   if (!o) throw new Error(`Offre invalide : ${i}`);
   const base = { ...state, offresContrat: null, phase: 'pro', periodeIndex: -1, periode: null, saisonStats: vide(), ligue: null };
+  if (o.type === 'centre') return { ...state, offresContrat: null, phase: 'centre', journal: [...state.journal, 'Tu termines ta formation au centre.'] };
   if (o.type === 'liberation') return { ...base, phase: 'fin', journal: [...state.journal, "Le club ne te garde pas. Fin de l'aventure… pour l'instant."] };
   if (o.type === 'pret') return { ...base, pret: { division: o.division }, contratFin: state.annee + 1,
     journal: [...state.journal, `Prêt d'un an en ${o.division}.`] };

@@ -6,9 +6,9 @@ import { overall } from '../src/engine/rating.js';
 const POS = ['ailier', 'centre', 'pilier-droit', 'demi-d-ouverture', 'troisieme-ligne-aile', 'talonneur'];
 const med = (a) => [...a].sort((x, y) => x - y)[Math.floor(a.length / 2)];
 
-test('un bon joueur est atteignable : progression médiane suffisante sur 40 carrières', () => {
+test('un bon joueur est atteignable : progression médiane suffisante sur 60 carrières', () => {
   const a21 = [], a24 = [], pics = [];
-  for (let seed = 1; seed <= 40; seed++) {
+  for (let seed = 1; seed <= 60; seed++) {
     let s = newCareer({ prenom: 'A', nom: 'B', nationaliteId: 'FR', positionId: POS[seed % 6], tailleCm: 185, poidsKg: 100,
       personnaliteIds: ['bosseur', 'flair', 'calme'], paysCentreId: 'FR', clubId: 'clermont' }, seed);
     let g = 0, pic = 0;
@@ -25,5 +25,5 @@ test('un bon joueur est atteignable : progression médiane suffisante sur 40 car
   }
   assert.ok(med(a21) >= 74, `médiane à 21 ans : ${med(a21)}`);
   assert.ok(med(a24) >= 82, `médiane à 24 ans : ${med(a24)}`);
-  assert.ok(pics.filter(x => x >= 85).length >= 20, `pic ≥ 85 : ${pics.filter(x => x >= 85).length}/40`);
+  assert.ok(pics.filter(x => x >= 85).length >= 30, `pic ≥ 85 : ${pics.filter(x => x >= 85).length}/60`);
 });

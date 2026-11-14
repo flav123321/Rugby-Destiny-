@@ -8,7 +8,9 @@ function bilanCard(r) {
     <p>${r.niveau && !r.categorie ? `<b>${esc(r.niveau)}</b> : ` : ''}${r.matchs} matchs · ${r.titularisations} titularisations · ${r.minutes} min · ${r.essais} essai${r.essais > 1 ? 's' : ''} · ${r.points} pts · note moyenne ${r.noteMoyenne ?? '–'}</p>
     ${r.espoirs ? `<p><b>Espoirs</b> : ${r.espoirs.matchs} matchs · ${r.espoirs.titularisations} titularisations · ${r.espoirs.minutes} min · ${r.espoirs.essais} essai${r.espoirs.essais > 1 ? 's' : ''} · note moyenne ${r.espoirs.noteMoyenne ?? '–'}</p>` : ''}
     ${r.champion ? `<p class="muted">Champion de France : ${esc(r.champion)} (${esc(r.finale)}) · relégué : ${esc(r.relegue)}${r.classementClub ? ` · ton club : ${r.classementClub}e` : ''}</p>` : ''}
-    ${r.championAvecLui ? '<p>🏆 <b>Tu es champion de France !</b></p>' : ''}</div>` : '';
+    ${r.top14?.matchs ? `<p><b>Top 14</b> (appelé avec les pros) : ${r.top14.matchs} matchs · ${r.top14.titularisations} titularisations · ${r.top14.essais} essai${r.top14.essais > 1 ? 's' : ''}</p>` : ''}
+    ${r.championAvecLui ? '<p>🏆 <b>Tu es champion de France !</b></p>' : ''}
+    ${(r.distinctions ?? []).map(d => `<p>🏅 <b>${esc(d)}</b></p>`).join('')}</div>` : '';
 }
 
 export function renderBilan(ui) {
@@ -20,13 +22,15 @@ export function renderBilan(ui) {
 export function renderOffres(ui) {
   const s = ui.career;
   const bilan = bilanCard(s.dernierResume);
-  const titre = s.player.age <= 19 && s.player.historique.every(h => h.categorie) ? 'Fin du centre de formation' : 'Ton avenir';
+  const anticipe = s.offresContrat.some(o => o.anticipe);
+  const titre = anticipe ? 'Le club veut te faire signer pro !' : s.player.age <= 19 && s.player.historique.every(h => h.categorie) ? 'Fin du centre de formation' : 'Ton avenir';
   return `${header(s)}<h1>${titre}</h1>${bilan}<h2>Offres</h2>
     ${s.offresContrat.map((o, i) => {
+      if (o.type === 'centre') return `<button class="btn" data-action="offre" data-v="${i}">Finir ta formation au centre<small>Une dernière saison chez les jeunes avant de passer pro</small></button>`;
       if (o.type === 'liberation') return `<button class="btn danger" data-action="offre" data-v="${i}">Le club ne te garde pas<small>Fin de l’aventure (les autres divisions arrivent bientôt)</small></button>`;
       if (o.type === 'pret') return `<button class="btn" data-action="offre" data-v="${i}">Prêt d’un an en ${esc(o.division)}<small>Rôle attendu : ${ROLES[o.role] ?? ''} · retour ensuite à ${esc(clubNom(o.clubId))}</small></button>`;
       return `<button class="btn" data-action="offre" data-v="${i}"><span class="club-row">${crest(o.clubId, 36)}<span><b>${esc(clubNom(o.clubId))}</b>
-        <small>Contrat pro de ${o.duree} an${o.duree > 1 ? 's' : ''} · rôle : ${ROLES[o.role] ?? o.role}</small></span></span></button>`;
+        <small>${o.anticipe ? '⚡ Contrat pro anticipé · ' : ''}Contrat pro de ${o.duree} an${o.duree > 1 ? 's' : ''} · rôle : ${ROLES[o.role] ?? o.role}</small></span></span></button>`;
     }).join('')}
     ${s.player.age >= 30 ? '<button class="btn danger" data-action="retraite">Prendre ma retraite</button>' : ''}`;
 }
