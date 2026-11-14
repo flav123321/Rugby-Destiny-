@@ -10,6 +10,9 @@ function bilanCard(r) {
     ${r.champion ? `<p class="muted">Champion de France : ${esc(r.champion)} (${esc(r.finale)}) · relégué : ${esc(r.relegue)}${r.classementClub ? ` · ton club : ${r.classementClub}e` : ''}</p>` : ''}
     ${r.top14?.matchs ? `<p><b>Top 14</b> (appelé avec les pros) : ${r.top14.matchs} matchs · ${r.top14.titularisations} titularisations · ${r.top14.essais} essai${r.top14.essais > 1 ? 's' : ''}</p>` : ''}
     ${r.championAvecLui ? '<p>🏆 <b>Tu es champion de France !</b></p>' : ''}
+    ${r.inter ? `<p><b>Sélection nationale</b> : ${r.inter.matchs} matchs · ${r.inter.essais} essai${r.inter.essais > 1 ? 's' : ''} · note moyenne ${r.inter.noteMoyenne ?? '–'}</p>` : ''}
+    ${r.u20 ? `<p><b>U20</b> : ${r.u20.matchs} matchs · ${r.u20.essais} essai${r.u20.essais > 1 ? 's' : ''}</p>` : ''}
+    ${(r.competitions ?? []).filter(c => c.selectionne || c.niveau === 'A').map(c => `<p class="muted">${c.selectionne ? '🌍' : '📺'} ${esc(c.competition)} : ${esc(c.resultat)}</p>`).join('')}
     ${(r.distinctions ?? []).map(d => `<p>🏅 <b>${esc(d)}</b></p>`).join('')}</div>` : '';
 }
 

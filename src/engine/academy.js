@@ -4,6 +4,7 @@ import { rollInjury, tickInjury } from './injuries.js';
 import { overall } from './rating.js';
 import { TOP14, clubById } from '../data/leagues/top14.js';
 import { roleFor } from './roles.js';
+import { periodeInternationale, resumeInter } from './inter-career.js';
 
 export const MAX_MATCHS_LISTES = 12;
 export const SEUIL_PRO_ANTICIPE = 74;
@@ -26,7 +27,7 @@ export function matchListe(categorie, adversaire, perf, rng) {
 export const pushListe = (liste, m) => [...(liste ?? []), m].slice(-MAX_MATCHS_LISTES);
 
 /** Matchs de catégorie joués sur une période (≈ 4 matchs). */
-function jeunesMatchs(state, rng) {
+function jeunesMatchs(state, rng, absences = 0) {
   const p = state.player;
   const st = { ...state.saisonStats, notes: [...state.saisonStats.notes] };
   if (p.blessure) return { st, liste: state.matchsJeunes ?? [] };
@@ -38,7 +39,7 @@ function jeunesMatchs(state, rng) {
   const chanceTop14 = p.age >= 17 && ovrPro >= 68 ? Math.min(0.8, (ovrPro - 66) / 15) : 0;
   const ovr = overall(p.stats, p.positionId);
   const seuil = 42 + (p.age - 16) * 5; // le niveau requis monte avec la catégorie
-  for (let i = 0; i < 4; i++) {
+  for (let i = 0; i < 4 - Math.min(absences, 3); i++) {
     if (rng.chance(chanceTop14)) {
       // appelé avec les pros : un vrai match de Top 14
       const tit = ovrPro + rng.int(-4, 4) >= 74;
@@ -84,10 +85,12 @@ export function academyStep(state, rng) {
   if (idx >= PERIODES.length) {
     // fin de saison : progression, anniversaire, nouvelle saison
     const player = progressSeason(s.player, { minutesJouees: s.saisonStats.minutes, entrainementBonus: 1 }, rng);
-    const { notes, ...st } = s.saisonStats;
+    const { notes, inter: sInter, u20: sU20, ...st } = s.saisonStats;
     const noteMoyenne = notes.length ? Math.round(notes.reduce((a, b) => a + b, 0) / notes.length * 10) / 10 : null;
     const resume = { saison: saisonLabel(s.annee), age: s.player.age, categorie: CATEGORIES[s.player.age], niveau: CATEGORIES[s.player.age],
-      club: s.clubNom ?? null, ...st, noteMoyenne };
+      club: s.clubNom ?? null, ...st, noteMoyenne, inter: resumeInter(sInter), u20: resumeInter(sU20),
+      competitions: s.interSaison ?? [], distinctions: (s.interSaison ?? []).map(c => c.distinction).filter(Boolean) };
+    s.interSaison = [];
     s.player = { ...player, age: player.age + 1, historique: [...player.historique, resume] };
     s.annee += 1; s.vusSaison = [];
     s.saisonStats = { matchs: 0, titularisations: 0, minutes: 0, essais: 0, points: 0, notes: [] };
@@ -103,7 +106,9 @@ export function academyStep(state, rng) {
   s.periode = PERIODES[idx];
   s.player = tickInjury(s.player, 6);
   if (!s.player.blessure) { const b = rollInjury(s.player, rng); if (b) s.player = { ...s.player, blessure: b }; }
-  if (s.periode !== 'ete') { const r = jeunesMatchs(s, rng); s.saisonStats = r.st; s.matchsJeunes = r.liste; }
+  const inter = periodeInternationale(s, rng);
+  s = inter.state;
+  if (s.periode !== 'ete') { const r = jeunesMatchs(s, rng, inter.absences); s.saisonStats = r.st; s.matchsJeunes = r.liste; }
   s.evenementEnCours = drawEvent(s, s.periode, rng);
   return s;
 }

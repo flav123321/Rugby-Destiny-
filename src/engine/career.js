@@ -12,6 +12,7 @@ import { PERIODES, drawEvent, applyChoice, eventById } from './events.js';
 import { buildFixtures, standings, playoffs, teamStrength, playDay } from './season.js';
 import { progressSeason } from './progression.js';
 import { rollInjury, tickInjury } from './injuries.js';
+import { periodeInternationale, resumeInter } from './inter-career.js';
 
 // Répartition des 26 journées de Top 14 sur les périodes.
 const JOURNEES = { presaison: [0, 0], automne: [0, 9], hiver: [9, 17], printemps: [17, 26], ete: [26, 26] };
@@ -100,7 +101,12 @@ function proStep(state, rng) {
   s.player = tickInjury(s.player, 6);
   if (!s.player.blessure) { const b = rollInjury(s.player, rng); if (b) s.player = { ...s.player, blessure: b }; }
 
+  const inter = periodeInternationale(s, rng);
+  s = inter.state;
   const [from, to] = JOURNEES[s.periode];
+  const absents = new Set();
+  const plage = Array.from({ length: to - from }, (_, i) => from + i);
+  while (absents.size < Math.min(inter.absences, plage.length)) absents.add(rng.pick(plage));
   const ligue = { ...s.ligue, results: [...s.ligue.results], joueurMatchs: [...s.ligue.joueurMatchs] };
   const st = { ...s.saisonStats, notes: [...s.saisonStats.notes] };
   const esp = s.saisonStats.espoirs ? { ...s.saisonStats.espoirs, notes: [...s.saisonStats.espoirs.notes] } : videEspoirs();
@@ -110,7 +116,7 @@ function proStep(state, rng) {
   const forces = Object.fromEntries(TOP14.clubs.map(c => [c.id, teamStrength(c, playerTop14)]));
   for (let j = from; j < to; j++) {
     for (const [h, a] of ligue.fixtures[j]) {
-      const m = playDay(h, a, TOP14.clubs, forces, playerTop14, rng);
+      const m = playDay(h, a, TOP14.clubs, forces, playerTop14, rng, absents.has(j));
       const { perfJoueur, ...res } = m;
       ligue.results.push(res);
       if (playerTop14 && (h === s.player.clubId || a === s.player.clubId)) {
@@ -120,7 +126,7 @@ function proStep(state, rng) {
           st.minutes += perfJoueur.minutes; st.essais += perfJoueur.essais; st.points += perfJoueur.points;
           st.plaquages += perfJoueur.plaquages; st.notes.push(perfJoueur.note);
         }
-        const espoirs = !perfJoueur && !s.player.blessure && s.player.age <= AGE_MAX_ESPOIRS ? matchEspoirs(s.player, esp, rng) : null;
+        const espoirs = !perfJoueur && !absents.has(j) && !s.player.blessure && s.player.age <= AGE_MAX_ESPOIRS ? matchEspoirs(s.player, esp, rng) : null;
         ligue.joueurMatchs.push({ journee: j + 1, home: h, away: a, score: `${res.scoreHome}-${res.scoreAway}`, perf: perfJoueur, espoirs });
       }
     }
@@ -159,12 +165,12 @@ function finDeSaison(s, rng) {
     finale: `${clubById(po.finale.home).nom} ${po.finale.scoreHome}-${po.finale.scoreAway} ${clubById(po.finale.away).nom}`,
     relegue: clubById(po.relegue).nom, championAvecLui: !s.pret && po.champion === s.player.clubId,
     niveau: s.pret ? s.pret.division : 'Top 14', tableau: table };
-  resume.distinctions = distinctions(s, resume, rng);
+  resume.distinctions = [...distinctions(s, resume, rng), ...(s.interSaison ?? []).map(c => c.distinction).filter(Boolean)];
   const { tableau, ...histo } = resume;
   const progressed = progressSeason(s.player, { minutesJouees: s.saisonStats.minutes + (s.saisonStats.espoirs?.minutes ?? 0) / 2 }, rng);
   const player = { ...progressed, age: progressed.age + 1, historique: [...progressed.historique, histo] };
   const out = { ...s, player, annee: s.annee + 1, periodeIndex: -1, periode: null, vusSaison: [], saisonStats: vide(),
-    ligue: null, dernierResume: resume, evenementEnCours: null };
+    ligue: null, dernierResume: resume, evenementEnCours: null, interSaison: [] };
   if (s.pret || out.annee >= out.contratFin) {
     return { ...out, pret: null, phase: 'offres', offresContrat: contractOffers(out, rng) };
   }
@@ -216,7 +222,8 @@ export function seasonSummary(state) {
   const espoirs = e && e.matchs ? { matchs: e.matchs, titularisations: e.titularisations, minutes: e.minutes, essais: e.essais, points: e.points, noteMoyenne: moyenne(e.notes) } : null;
   return { saison: saisonLabel(state.annee), age: state.player.age, club: clubById(state.player.clubId)?.nom ?? '—',
     matchs: st.matchs, titularisations: st.titularisations, minutes: st.minutes, essais: st.essais, points: st.points,
-    noteMoyenne: moyenne(notes), espoirs };
+    noteMoyenne: moyenne(notes), espoirs, inter: resumeInter(st.inter), u20: resumeInter(st.u20),
+    competitions: state.interSaison ?? [] };
 }
 
 /** Offres de contrat pro (1 à 3 clubs du Top 14) selon la note du joueur. */

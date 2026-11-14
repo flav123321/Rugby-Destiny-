@@ -1,5 +1,6 @@
 import { esc, crest, clubNom } from '../common.js';
 import { standings } from '../../engine/season.js';
+import { nomPays } from '../../engine/international.js';
 
 export function renderSaisonTab(s) {
   if (!s.ligue?.results.length) return '<p class="muted">Le championnat n’a pas encore commencé.</p>';
@@ -29,8 +30,22 @@ export function renderMatchsRecents(s) {
   const esp = st.espoirs;
   const resume = blocStats(niveau, st) + (s.phase === 'pro' && !s.pret && esp?.matchs ? blocStats('Espoirs', esp) : '')
     + (s.phase === 'centre' && st.top14?.matchs ? blocStats('Top 14 (avec les pros)', st.top14) : '');
-  if (s.phase === 'centre' || s.pret) return resume + renderListeJeunes(s);
-  return renderListe(s, resume);
+  const inter = (st.inter?.matchs ? blocStats('Sélection nationale', st.inter) : '') + (st.u20?.matchs ? blocStats('Équipe nationale U20', st.u20) : '') + renderInter(s);
+  if (s.phase === 'centre' || s.pret) return resume + inter + renderListeJeunes(s);
+  return renderListe(s, resume + inter);
+}
+
+function renderInter(s) {
+  const w = s.derniereFenetre;
+  const comps = (s.interSaison ?? []);
+  if (!comps.length) return '';
+  const lignes = comps.map(c => `<div>${c.selectionne ? '✅' : '➖'} <b>${esc(c.competition)}</b> : ${esc(c.resultat)}${c.selectionne ? '' : ' <span class="muted">(non sélectionné)</span>'}</div>`).join('');
+  const matchs = w?.selectionne ? w.matchs.map(m => {
+    const p = m.perf;
+    const perf = p ? `${p.statut === 'titulaire' ? 'Titulaire' : 'Remplaçant'} · ${p.minutes}′ · note <b>${p.note}</b>${p.essais ? ` · ${p.essais} essai${p.essais > 1 ? 's' : ''}` : ''}` : '<span class="muted">Non retenu sur ce match</span>';
+    return `<div class="card">${m.tour ? `<span class="muted">${esc(m.tour)}</span> · ` : ''}${m.gagne ? '✅' : m.nul ? '🟰' : '❌'} ${m.domicile ? 'contre' : 'chez'} ${esc(nomPays(m.adversaire))} <b>${m.score}</b><br>${perf}</div>`;
+  }).join('') : '';
+  return `<h3>International · cette saison</h3><div class="card">${lignes}</div>${matchs ? `<h3>${esc(w.competition)}</h3>${matchs}` : ''}`;
 }
 
 function renderListeJeunes(s) {

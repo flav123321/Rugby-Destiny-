@@ -70,9 +70,9 @@ export function simulateSeason(clubs, player, rng) {
   return { results, forces };
 }
 
-export function playDay(h, a, clubs, forces, player, rng) {
+export function playDay(h, a, clubs, forces, player, rng, absent = false) {
   let statut = 'non-retenu';
-  if (player && (player.clubId === h || player.clubId === a)) statut = selectMatchday(clubs.find(c => c.id === player.clubId), player, rng);
+  if (player && !absent && (player.clubId === h || player.clubId === a)) statut = selectMatchday(clubs.find(c => c.id === player.clubId), player, rng);
   const buteur = player?.positionId === 'demi-d-ouverture' && statut === 'titulaire' && player.stats.jeuAuPied >= 70;
   return simulateMatch({ id: h, force: forces[h] }, { id: a, force: forces[a] }, player, rng, { statut, buteur });
 }
