@@ -1,14 +1,14 @@
 import { renderAccueil } from './screens/accueil.js';
 import { renderCreation } from './screens/creation.js';
 import { renderJeu } from './screens/centre.js';
-import { renderOffres, renderFin } from './screens/resume.js';
+import { renderOffres, renderFin, renderBilan } from './screens/resume.js';
 import { newCareer, advance, choose, acceptOffer, academyClubOffers, retire } from '../engine/career.js';
 import { createRng } from '../engine/rng.js';
 import { save, load } from '../engine/save.js';
 import { positionById } from '../data/positions.js';
 
 const root = document.getElementById('app');
-const ui = { screen: 'accueil', career: null, creation: null, tab: 'saison', resultat: null, sauvegarde: load(), stockageKo: false };
+const ui = { screen: 'accueil', career: null, creation: null, tab: 'saison', resultat: null, sauvegarde: null, stockageKo: false, erreur: false };
 
 function persist() { if (ui.career && !save(ui.career)) ui.stockageKo = true; }
 
@@ -16,13 +16,21 @@ function screenFor() {
   if (ui.screen !== 'jeu') return ui.screen;
   if (ui.career.phase === 'offres') return 'offres';
   if (ui.career.phase === 'fin') return 'fin';
+  if (ui.career.phase === 'bilan') return 'bilan';
   return 'jeu';
 }
 
 function render() {
-  const sc = screenFor();
-  root.innerHTML = sc === 'accueil' ? renderAccueil(ui) : sc === 'creation' ? renderCreation(ui)
-    : sc === 'offres' ? renderOffres(ui) : sc === 'fin' ? renderFin(ui) : renderJeu(ui);
+  try {
+    if (ui.screen === 'accueil') ui.sauvegarde = load(); // toujours la sauvegarde la plus récente
+    const sc = screenFor();
+    root.innerHTML = sc === 'accueil' ? renderAccueil(ui) : sc === 'creation' ? renderCreation(ui)
+      : sc === 'offres' ? renderOffres(ui) : sc === 'fin' ? renderFin(ui) : sc === 'bilan' ? renderBilan(ui) : renderJeu(ui);
+  } catch (err) {
+    console.error(err);
+    if (ui.screen !== 'accueil') { ui.screen = 'accueil'; ui.career = null; ui.erreur = true; render(); return; }
+    root.innerHTML = '<p>Erreur inattendue. Recharge la page.</p>';
+  }
 }
 
 function startCreation() {

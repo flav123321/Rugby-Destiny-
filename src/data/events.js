@@ -113,13 +113,13 @@ export const EVENTS = [
       { label: 'Travailler ton point fort', effets: { stats: { conquete: 2, passe: 2 }, texteResultat: 'Ton point fort devient une arme.' } },
       { label: 'Travailler ton point faible', effets: { stats: { plaquage: 2, jeuAuPied: 2 }, texteResultat: 'Moins brillant, mais plus complet.' } },
     ] },
-  { id: 'c-avants-melee', phase: 'centre', poids: 4, condition: avant,
+  { id: 'c-avants-melee', phase: 'centre', poids: 4, tags: ['requiertApte'], condition: avant,
     texte: "L'entraîneur des avants organise une séance de mêlée contre les pros. Ça va piquer.",
     choix: [
       { label: 'Tenir coûte que coûte', effets: { stats: { conquete: 4, puissance: 1 }, forme: -5, texteResultat: 'Tu as reculé. Puis tu as tenu. Puis tu as poussé.' } },
       { label: 'Demander des conseils techniques', effets: { stats: { conquete: 2, lecture: 2 }, texteResultat: 'Un vieux pilier te montre deux trucs qui changent tout.' } },
     ] },
-  { id: 'c-arrieres-buteur', phase: 'centre', poids: 4, condition: (s) => !avant(s),
+  { id: 'c-arrieres-buteur', phase: 'centre', poids: 4, tags: ['requiertApte'], condition: (s) => !avant(s),
     texte: "Le buteur titulaire des Crabos est suspendu. Quelqu'un doit prendre les tirs au but.",
     choix: [
       { label: 'Prendre le ballon', effets: { stats: { jeuAuPied: 4, mental: 2 }, texteResultat: '5 sur 6. Le coach te garde comme buteur.' } },
@@ -144,7 +144,7 @@ export const EVENTS = [
       { label: 'Vraies vacances', effets: { moral: 8, forme: 10, texteResultat: 'Tête vidée, corps reposé.' } },
       { label: 'Job d’été pour aider tes parents', effets: { stats: { mental: 2 }, moral: 2, texteResultat: 'Tu découvres la vraie vie. Ça remet les idées en place.' } },
     ] },
-  { id: 'c-reseaux', phase: 'centre', poids: 2,
+  { id: 'c-reseaux', phase: 'centre', poids: 2, tags: ['requiertApte'],
     texte: "Une de tes actions en match fait le buzz sur les réseaux sociaux : 300 000 vues.",
     choix: [
       { label: 'Profiter de la notoriété', effets: { moral: 5, flags: ['populaire'], texteResultat: 'Tu gagnes 10 000 abonnés. Attention à ne pas t’enflammer.' } },
@@ -155,7 +155,7 @@ export const EVENTS = [
   { id: 'p-contrat-prolongation', phase: 'pro', periode: 'hiver', poids: 3,
     texte: "Le président veut prolonger ton contrat de deux ans, avec une petite revalorisation.",
     choix: [
-      { label: 'Signer tout de suite', effets: { moral: 5, flags: ['prolonge'], texteResultat: 'Stabilité. Tu peux te concentrer sur le terrain.' } },
+      { label: 'Signer tout de suite', effets: { moral: 5, prolongation: 2, flags: ['prolonge'], texteResultat: 'Stabilité. Tu peux te concentrer sur le terrain.' } },
       { label: 'Attendre la fin de saison', effets: { stats: { mental: 1 }, texteResultat: 'Tu fais monter les enchères. Risqué.' } },
     ] },
   { id: 'p-media', phase: 'pro', poids: 3,

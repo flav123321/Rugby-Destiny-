@@ -1,5 +1,6 @@
 // Service worker : tout le jeu en cache pour jouer hors connexion.
-const CACHE = 'rugby-carriere-v1';
+// À chaque mise à jour : changer la version dans package.json ET ici.
+const CACHE = 'rugby-carriere-0.1.0';
 const FILES = [
   './',
   './icons/icon-180.png',
@@ -36,7 +37,7 @@ const FILES = [
   './styles.css',
 ];
 self.addEventListener('install', (e) => {
-  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES)).then(() => self.skipWaiting()));
+  e.waitUntil(caches.open(CACHE).then(c => c.addAll(FILES.map(f => new Request(f, { cache: 'reload' })))).then(() => self.skipWaiting()));
 });
 self.addEventListener('activate', (e) => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));

@@ -21,7 +21,7 @@ test('une carrière complète tourne du centre à 3 saisons pro sans erreur', ()
     if (s.phase === 'offres') { s = acceptOffer(s, 0); continue; }
     const avant = s.annee;
     s = advance(s);
-    if (s.phase === 'pro' && s.annee > avant && s.dernierResume?.niveau === 'Top 14') saisonsPro++;
+    if (['pro', 'bilan'].includes(s.phase) && s.annee > avant && s.dernierResume?.niveau === 'Top 14') saisonsPro++;
     if (s.phase === 'fin') break;
   }
   assert.ok(saisonsPro >= 1 || s.phase === 'fin', `phase ${s.phase}`);

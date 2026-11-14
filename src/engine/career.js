@@ -41,6 +41,7 @@ export function newCareer(input, seed) {
 
 /** Avance d'une période. Ne fait rien si un choix est en attente. */
 export function advance(state) {
+  if (state.phase === 'bilan') return { ...state, phase: state.phaseApresBilan ?? 'pro', phaseApresBilan: null };
   if (state.evenementEnCours || state.phase === 'offres' || state.phase === 'fin') return state;
   if (state.phase === 'centre') {
     return withRng(state, (rng) => {
@@ -49,6 +50,10 @@ export function advance(state) {
       if (s.offresContrat) {
         const last = s.player.historique.at(-1);
         return { ...toId(s), phase: 'offres', dernierResume: { ...last, niveau: CATEGORIES[last.age], club: clubById(s.player.clubId).nom } };
+      }
+      if (s.annee > state.annee) {
+        // fin d'une saison au centre : bilan avant de continuer
+        return { ...toId(s), phase: 'bilan', phaseApresBilan: 'centre', dernierResume: s.player.historique.at(-1) };
       }
       return toId(s);
     });
@@ -128,14 +133,16 @@ function finDeSaison(s, rng) {
   if (s.pret || out.annee >= out.contratFin) {
     return { ...out, pret: null, phase: 'offres', offresContrat: contractOffers(out, rng) };
   }
-  return out;
+  return { ...out, phase: 'bilan', phaseApresBilan: 'pro' };
 }
 
 export function choose(state, choixIndex) {
   if (!state.evenementEnCours) throw new Error('Aucun événement en cours');
   const ev = eventById(state.evenementEnCours);
   const s = applyChoice(state, ev, choixIndex);
-  return { ...s, evenementEnCours: null };
+  const prolongation = ev.choix[choixIndex].effets.prolongation;
+  const contratFin = prolongation && s.contratFin ? s.contratFin + prolongation : s.contratFin;
+  return { ...s, contratFin, evenementEnCours: null };
 }
 
 /** Accepte une offre (fin du centre ou fin de contrat). */

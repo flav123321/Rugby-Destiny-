@@ -2,13 +2,23 @@ import { esc, crest, clubNom, header, historyTable } from '../common.js';
 
 const ROLES = { titulaire: 'Titulaire', rotation: 'Rotation', espoir: 'Espoir' };
 
-export function renderOffres(ui) {
-  const s = ui.career; const r = s.dernierResume;
-  const bilan = r ? `<div class="card"><h3>Bilan ${esc(r.saison)}</h3>
+function bilanCard(r) {
+  return r ? `<div class="card"><h3>Bilan ${esc(r.saison)}</h3>
     <p><b>${esc(r.club)}</b> · ${esc(r.niveau ?? '')} · ${r.age} ans</p>
     <p>${r.matchs} matchs · ${r.titularisations} titularisations · ${r.minutes} min · ${r.essais} essais · ${r.points} pts · note moyenne ${r.noteMoyenne ?? '–'}</p>
     ${r.champion ? `<p class="muted">Champion de France : ${esc(r.champion)} (${esc(r.finale)}) · relégué : ${esc(r.relegue)}${r.classementClub ? ` · ton club : ${r.classementClub}e` : ''}</p>` : ''}
     ${r.championAvecLui ? '<p>🏆 <b>Tu es champion de France !</b></p>' : ''}</div>` : '';
+}
+
+export function renderBilan(ui) {
+  const s = ui.career;
+  return `${header(s)}<h1>Fin de saison</h1>${bilanCard(s.dernierResume)}
+    <button class="btn primary" data-action="avancer">Saison suivante</button>`;
+}
+
+export function renderOffres(ui) {
+  const s = ui.career;
+  const bilan = bilanCard(s.dernierResume);
   const titre = s.player.age <= 19 && s.player.historique.every(h => h.categorie) ? 'Fin du centre de formation' : 'Ton avenir';
   return `${header(s)}<h1>${titre}</h1>${bilan}<h2>Offres</h2>
     ${s.offresContrat.map((o, i) => {
