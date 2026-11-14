@@ -2,7 +2,7 @@ import { NATIONS, SIX_NATIONS, NATIONS_CHAMPIONSHIP, NOMS } from '../data/nation
 import { SQUADS } from '../data/nations-squads.js';
 import { NATIONALITIES, nationalityById } from '../data/nationalities.js';
 import { POSITIONS, positionById } from '../data/positions.js';
-import { TOP14 } from '../data/leagues/top14.js';
+import { LEAGUES } from '../data/leagues/index.js';
 import { overall } from './rating.js';
 import { simulateMatch } from './match.js';
 import { standings } from './season.js';
@@ -19,7 +19,7 @@ export function nationalPool(natId) {
   if (cache.has(natId)) return cache.get(natId);
   const base = NATIONS[natId]?.base ?? 65;
   const byName = new Map();
-  for (const c of TOP14.clubs) for (const j of c.joueurs) if (j.nationaliteId === natId) byName.set(j.nom, { nom: j.nom, positionId: j.positionId, age: j.age, note: j.note });
+  for (const c of LEAGUES.flatMap(l => l.clubs)) for (const j of c.joueurs) if (j.nationaliteId === natId && !j.genere) byName.set(j.nom, { nom: j.nom, positionId: j.positionId, age: j.age, note: j.note });
   for (const line of SQUADS[natId] ?? []) {
     const [nom, code, note, age] = line.split('|');
     if (!byName.has(nom)) byName.set(nom, { nom, positionId: POS[code], age: Number(age), note: Number(note) });

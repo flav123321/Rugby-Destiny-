@@ -1,11 +1,11 @@
-import { esc, crest, clubNom } from '../common.js';
+import { esc, crest, clubNom, ligueNom } from '../common.js';
 import { standings } from '../../engine/season.js';
 import { nomPays } from '../../engine/international.js';
 
 export function renderSaisonTab(s) {
   if (!s.ligue?.results.length) return '<p class="muted">Le championnat n’a pas encore commencé.</p>';
   const t = standings(s.ligue.results);
-  return `<p class="muted">Top 14 · après ${s.ligue.journee} journée${s.ligue.journee > 1 ? 's' : ''}</p><div class="scroll"><table>
+  return `<p class="muted">${esc(ligueNom(s.player.clubId))} · après ${s.ligue.journee} journée${s.ligue.journee > 1 ? 's' : ''}</p><div class="scroll"><table>
     <tr><th>#</th><th>Club</th><th>J</th><th>G</th><th>Diff</th><th>Pts</th></tr>
     ${t.map((r, i) => `<tr class="${r.clubId === s.player.clubId ? 'me' : ''}"><td>${i + 1}</td><td><span class="club-row">${crest(r.clubId, 20)} ${esc(clubNom(r.clubId))}</span></td>
       <td>${r.j}</td><td>${r.g}</td><td>${r.pf - r.pc > 0 ? '+' : ''}${r.pf - r.pc}</td><td><b>${r.pts}</b></td></tr>`).join('')}
@@ -26,12 +26,12 @@ function blocStats(titre, st) {
 
 export function renderMatchsRecents(s) {
   const st = s.saisonStats;
-  const niveau = s.phase === 'centre' ? 'Ma saison' : s.pret ? `Prêt en ${s.pret.division}` : 'Top 14';
+  const niveau = s.phase === 'centre' ? 'Ma saison' : ligueNom(s.player.clubId) + (s.pret ? ' (prêt)' : '');
   const esp = st.espoirs;
-  const resume = blocStats(niveau, st) + (s.phase === 'pro' && !s.pret && esp?.matchs ? blocStats('Espoirs', esp) : '')
-    + (s.phase === 'centre' && st.top14?.matchs ? blocStats('Top 14 (avec les pros)', st.top14) : '');
+  const resume = blocStats(niveau, st) + (s.phase === 'pro' && esp?.matchs ? blocStats('Espoirs', esp) : '')
+    + (s.phase === 'centre' && st.top14?.matchs ? blocStats(`${ligueNom(s.player.clubId)} (avec les pros)`, st.top14) : '');
   const inter = (st.inter?.matchs ? blocStats('Sélection nationale', st.inter) : '') + (st.u20?.matchs ? blocStats('Équipe nationale U20', st.u20) : '') + renderInter(s);
-  if (s.phase === 'centre' || s.pret) return resume + inter + renderListeJeunes(s);
+  if (s.phase === 'centre') return resume + inter + renderListeJeunes(s);
   return renderListe(s, resume + inter);
 }
 
@@ -66,7 +66,7 @@ function renderListe(s, resume) {
   return resume + `<h3>Derniers matchs du club</h3>${matchs.map(m => {
     const p = m.perf;
     const e = m.espoirs;
-    const perf = !p ? (e ? `<span class="muted">Non retenu en Top 14</span> · avec les Espoirs : ${e.statut === 'titulaire' ? 'titulaire' : 'remplaçant'}, ${e.minutes}′, note <b>${e.note}</b>${e.essais ? ' · 1 essai' : ''}` : '<span class="muted">Non retenu</span>')
+    const perf = !p ? (e ? `<span class="muted">Non retenu en ${esc(ligueNom(s.player.clubId))}</span> · avec les Espoirs : ${e.statut === 'titulaire' ? 'titulaire' : 'remplaçant'}, ${e.minutes}′, note <b>${e.note}</b>${e.essais ? ' · 1 essai' : ''}` : '<span class="muted">Non retenu</span>')
       : `${p.statut === 'titulaire' ? 'Titulaire' : 'Remplaçant'} · ${p.minutes}′ · note <b>${p.note}</b>${p.essais ? ` · ${p.essais} essai${p.essais > 1 ? 's' : ''}` : ''}${p.points && !p.essais ? ` · ${p.points} pts` : ''}`;
     return `<div class="card"><span class="muted">J${m.journee}</span> ${esc(clubNom(m.home))} <b>${m.score}</b> ${esc(clubNom(m.away))}<br>${perf}</div>`;
   }).join('')}`;

@@ -6,5 +6,5 @@ export function renderAccueil(ui) {
       ${ui.sauvegarde ? `<small>${ui.sauvegarde.player.prenom} ${ui.sauvegarde.player.nom}, ${ui.sauvegarde.player.age} ans</small>` : '<small>Aucune sauvegarde</small>'}</button>
     ${ui.erreur ? '<p class="muted">⚠️ Un problème est survenu avec cette partie. Tu peux en lancer une nouvelle.</p>' : ''}
     ${ui.stockageKo ? '<p class="muted">⚠️ La sauvegarde n’est pas disponible sur ce navigateur (navigation privée ?). Ta carrière ne sera pas gardée.</p>' : ''}
-    <p class="footer muted">Saison de départ 2026-27 · effectifs réels du Top 14</p>`;
+    <p class="footer muted">Saison de départ 2026-27 · Top 14 · Pro D2 · Nationale · 20 sélections</p>`;
 }

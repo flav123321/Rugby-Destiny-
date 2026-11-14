@@ -2,7 +2,7 @@ import { PERIODES, drawEvent } from './events.js';
 import { progressSeason } from './progression.js';
 import { rollInjury, tickInjury } from './injuries.js';
 import { overall } from './rating.js';
-import { TOP14, clubById } from '../data/leagues/top14.js';
+import { clubById, leagueOfClub } from '../data/leagues/index.js';
 import { roleFor } from './roles.js';
 import { periodeInternationale, resumeInter } from './inter-career.js';
 
@@ -32,7 +32,8 @@ function jeunesMatchs(state, rng, absences = 0) {
   const st = { ...state.saisonStats, notes: [...state.saisonStats.notes] };
   if (p.blessure) return { st, liste: state.matchsJeunes ?? [] };
   let liste = state.matchsJeunes ?? [];
-  const adversaires = TOP14.clubs.filter(c => c.id !== p.clubId);
+  const ligueClub = leagueOfClub(p.clubId);
+  const adversaires = ligueClub.clubs.filter(c => c.id !== p.clubId);
   const t14 = st.top14 ? { ...st.top14, notes: [...st.top14.notes] } : { matchs: 0, titularisations: 0, minutes: 0, essais: 0, points: 0, notes: [] };
   st.top14 = t14;
   const ovrPro = overall(p.stats, p.positionId);
@@ -47,7 +48,7 @@ function jeunesMatchs(state, rng, absences = 0) {
       const essais = rng.chance(0.15 * minutes / 80 * (p.positionId === 'ailier' ? 2 : 1)) ? 1 : 0;
       const note = Math.max(0, Math.min(10, Math.round((5 + (ovrPro - 70) / 7 + essais * 0.8 + rng.next() * 2 - 1) * 10) / 10));
       t14.matchs++; if (tit) t14.titularisations++; t14.minutes += minutes; t14.essais += essais; t14.points += essais * 5; t14.notes.push(note);
-      liste = pushListe(liste, matchListe('Top 14', rng.pick(adversaires).nom, { statut: tit ? 'titulaire' : 'remplacant', minutes, essais, note }, rng));
+      liste = pushListe(liste, matchListe(ligueClub.label, rng.pick(adversaires).nom, { statut: tit ? 'titulaire' : 'remplacant', minutes, essais, note }, rng));
       continue;
     }
     st.matchs++;

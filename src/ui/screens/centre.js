@@ -1,4 +1,4 @@
-import { esc, header, statBars } from '../common.js';
+import { esc, header, statBars, ligueNom } from '../common.js';
 import { eventById, PERIODE_LABELS } from '../../engine/events.js';
 import { CATEGORIES, saisonLabel } from '../../engine/academy.js';
 import { renderSaisonTab, renderMatchsRecents } from './saison.js';
@@ -6,7 +6,7 @@ import { historyTable } from '../common.js';
 
 export function renderJeu(ui) {
   const s = ui.career;
-  const niveau = s.phase === 'centre' ? CATEGORIES[s.player.age] : (s.pret ? `Prêt en ${s.pret.division}` : 'Top 14');
+  const niveau = s.phase === 'centre' ? CATEGORIES[s.player.age] : (s.pret ? `${ligueNom(s.player.clubId)} (prêt)` : ligueNom(s.player.clubId));
   const periode = s.periode ? PERIODE_LABELS[s.periode] : 'Intersaison';
   let main = '';
   if (ui.resultat) {
@@ -22,7 +22,7 @@ export function renderJeu(ui) {
   }
   const tab = ui.tab ?? 'saison';
   const tabs = [['saison', 'Saison'], ['stats', 'Joueur'], ['carriere', 'Carrière']];
-  if (s.phase === 'pro' && !s.pret) tabs.splice(1, 0, ['classement', 'Classement']);
+  if (s.phase === 'pro') tabs.splice(1, 0, ['classement', 'Classement']);
   let content = '';
   if (tab === 'saison') content = renderMatchsRecents(s);
   if (tab === 'classement') content = renderSaisonTab(s);

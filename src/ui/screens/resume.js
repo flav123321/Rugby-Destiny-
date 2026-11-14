@@ -8,7 +8,7 @@ function bilanCard(r) {
     <p>${r.niveau && !r.categorie ? `<b>${esc(r.niveau)}</b> : ` : ''}${r.matchs} matchs · ${r.titularisations} titularisations · ${r.minutes} min · ${r.essais} essai${r.essais > 1 ? 's' : ''} · ${r.points} pts · note moyenne ${r.noteMoyenne ?? '–'}</p>
     ${r.espoirs ? `<p><b>Espoirs</b> : ${r.espoirs.matchs} matchs · ${r.espoirs.titularisations} titularisations · ${r.espoirs.minutes} min · ${r.espoirs.essais} essai${r.espoirs.essais > 1 ? 's' : ''} · note moyenne ${r.espoirs.noteMoyenne ?? '–'}</p>` : ''}
     ${r.champion ? `<p class="muted">Champion de France : ${esc(r.champion)} (${esc(r.finale)}) · relégué : ${esc(r.relegue)}${r.classementClub ? ` · ton club : ${r.classementClub}e` : ''}</p>` : ''}
-    ${r.top14?.matchs ? `<p><b>Top 14</b> (appelé avec les pros) : ${r.top14.matchs} matchs · ${r.top14.titularisations} titularisations · ${r.top14.essais} essai${r.top14.essais > 1 ? 's' : ''}</p>` : ''}
+    ${r.top14?.matchs ? `<p><b>Avec les pros</b> : ${r.top14.matchs} matchs · ${r.top14.titularisations} titularisations · ${r.top14.essais} essai${r.top14.essais > 1 ? 's' : ''}</p>` : ''}
     ${r.championAvecLui ? '<p>🏆 <b>Tu es champion de France !</b></p>' : ''}
     ${r.inter ? `<p><b>Sélection nationale</b> : ${r.inter.matchs} matchs · ${r.inter.essais} essai${r.inter.essais > 1 ? 's' : ''} · note moyenne ${r.inter.noteMoyenne ?? '–'}</p>` : ''}
     ${r.u20 ? `<p><b>U20</b> : ${r.u20.matchs} matchs · ${r.u20.essais} essai${r.u20.essais > 1 ? 's' : ''}</p>` : ''}

@@ -1,21 +1,25 @@
 import { createRng } from './rng.js';
 import { createPlayer } from './player.js';
 import { overall } from './rating.js';
-import { TOP14, clubById } from '../data/leagues/top14.js';
+import { TOP14 } from '../data/leagues/top14.js';
+import { PROD2 } from '../data/leagues/prod2.js';
+import { clubById, leagueOfClub, leagueById, allClubs } from '../data/leagues/index.js';
 import { academyStep, newAcademyState, saisonLabel, CATEGORIES, matchListe, pushListe } from './academy.js';
 
-const ADVERSAIRES = {
-  'Pro D2': ['US Montauban', 'Provence Rugby', 'FC Grenoble', 'Biarritz Olympique', 'US Dax', 'SU Agen', 'Colomiers Rugby', 'AS Béziers', 'Stade Aurillacois', 'USON Nevers', 'Oyonnax Rugby', 'Stade Niçois'],
-  Nationale: ['Stade Montois', 'CA Périgueux', 'CS Bourgoin-Jallieu', 'RC Massy', 'Rouen Normandie', 'RC Narbonne', 'US Carcassonne', 'Chambéry'],
-};
 import { PERIODES, drawEvent, applyChoice, eventById } from './events.js';
 import { buildFixtures, standings, playoffs, teamStrength, playDay } from './season.js';
 import { progressSeason } from './progression.js';
 import { rollInjury, tickInjury } from './injuries.js';
 import { periodeInternationale, resumeInter } from './inter-career.js';
+import { roleFor } from './roles.js';
 
-// Répartition des 26 journées de Top 14 sur les périodes.
-const JOURNEES = { presaison: [0, 0], automne: [0, 9], hiver: [9, 17], printemps: [17, 26], ete: [26, 26] };
+// Répartition des journées du championnat sur les périodes (26 en Top 14 et Nationale, 30 en Pro D2).
+function journees(periode, n) {
+  const a = Math.round(n * 0.35), h = Math.round(n * 0.66);
+  return { presaison: [0, 0], automne: [0, a], hiver: [a, h], printemps: [h, n], ete: [n, n] }[periode];
+}
+/** Niveau d'un club : moyenne de ses 23 meilleurs joueurs. */
+export const niveauClub = (club) => teamStrength(club, null);
 const videEspoirs = () => ({ matchs: 0, titularisations: 0, minutes: 0, essais: 0, points: 0, notes: [] });
 const vide = () => ({ matchs: 0, titularisations: 0, minutes: 0, essais: 0, points: 0, plaquages: 0, notes: [], espoirs: videEspoirs() });
 export const AGE_MAX_ESPOIRS = 22;
@@ -47,11 +51,12 @@ const toId = (s) => ({ ...s, evenementEnCours: s.evenementEnCours ? s.evenementE
 /** 3 centres de formation proposés : un grand club et deux tirés au hasard. */
 export function academyClubOffers(rng) {
   const clubs = [...TOP14.clubs];
+  const pd2 = PROD2.clubs.filter(c => c.centreFormation >= 3);
   const grands = clubs.filter(c => c.centreFormation >= 4);
   const premier = rng.pick(grands);
   const reste = clubs.filter(c => c.id !== premier.id);
   const a = reste.splice(rng.int(0, reste.length - 1), 1)[0];
-  const b = reste.splice(rng.int(0, reste.length - 1), 1)[0];
+  const b = rng.pick(pd2); // un centre de formation de Pro D2
   return [premier.id, a.id, b.id];
 }
 
@@ -88,8 +93,8 @@ export function advance(state) {
 }
 
 function initLigue(state) {
-  const ids = TOP14.clubs.map(c => c.id);
-  return { fixtures: buildFixtures(ids), journee: 0, results: [], joueurMatchs: [] };
+  const league = leagueOfClub(state.player.clubId);
+  return { leagueId: league.id, fixtures: buildFixtures(league.clubs.map(c => c.id)), journee: 0, results: [], joueurMatchs: [] };
 }
 
 function proStep(state, rng) {
@@ -103,7 +108,9 @@ function proStep(state, rng) {
 
   const inter = periodeInternationale(s, rng);
   s = inter.state;
-  const [from, to] = JOURNEES[s.periode];
+  const league = leagueById(s.ligue.leagueId ?? 'top14');
+  const clubs = league.clubs;
+  const [from, to] = journees(s.periode, s.ligue.fixtures.length);
   const absents = new Set();
   const plage = Array.from({ length: to - from }, (_, i) => from + i);
   while (absents.size < Math.min(inter.absences, plage.length)) absents.add(rng.pick(plage));
@@ -111,12 +118,11 @@ function proStep(state, rng) {
   const st = { ...s.saisonStats, notes: [...s.saisonStats.notes] };
   const esp = s.saisonStats.espoirs ? { ...s.saisonStats.espoirs, notes: [...s.saisonStats.espoirs.notes] } : videEspoirs();
   st.espoirs = esp;
-  const enPret = !!s.pret;
-  const playerTop14 = enPret ? null : s.player;
-  const forces = Object.fromEntries(TOP14.clubs.map(c => [c.id, teamStrength(c, playerTop14)]));
+  const playerTop14 = s.player;
+  const forces = Object.fromEntries(clubs.map(c => [c.id, teamStrength(c, playerTop14)]));
   for (let j = from; j < to; j++) {
     for (const [h, a] of ligue.fixtures[j]) {
-      const m = playDay(h, a, TOP14.clubs, forces, playerTop14, rng, absents.has(j));
+      const m = playDay(h, a, clubs, forces, playerTop14, rng, absents.has(j));
       const { perfJoueur, ...res } = m;
       ligue.results.push(res);
       if (playerTop14 && (h === s.player.clubId || a === s.player.clubId)) {
@@ -132,61 +138,50 @@ function proStep(state, rng) {
     }
     ligue.journee = j + 1;
   }
-  if (enPret && s.periode !== 'presaison' && s.periode !== 'ete') {
-    // prêt en Pro D2 / Nationale : matchs résumés
-    const ovr = overall(s.player.stats, s.player.positionId);
-    const seuil = s.pret.division === 'Pro D2' ? 60 : 53;
-    for (let i = 0; i < 9 && !s.player.blessure; i++) {
-      st.matchs++;
-      const tit = ovr + rng.int(-6, 6) >= seuil;
-      if (tit) st.titularisations++;
-      const min = tit ? rng.int(50, 80) : rng.int(0, 25);
-      st.minutes += min;
-      let perf = { statut: tit ? 'titulaire' : (min ? 'remplacant' : 'banc'), minutes: min, essais: 0, note: null };
-      if (min) {
-        const e = rng.chance(0.13) ? 1 : 0; st.essais += e; st.points += e * 5;
-        const note = Math.max(0, Math.min(10, Math.round((5.5 + (ovr - seuil) / 6 + rng.next() * 2 - 1) * 10) / 10));
-        st.notes.push(note); perf = { ...perf, essais: e, note };
-      }
-      s.matchsJeunes = pushListe(s.matchsJeunes, matchListe(s.pret.division, rng.pick(ADVERSAIRES[s.pret.division] ?? ['Adversaire']), perf, rng));
-    }
-  }
   s.ligue = ligue; s.saisonStats = st;
   s.evenementEnCours = drawEvent(s, s.periode, rng);
   return toId(s);
 }
 
 function finDeSaison(s, rng) {
+  const league = leagueById(s.ligue.leagueId ?? 'top14');
   const table = standings(s.ligue.results);
-  const forces = Object.fromEntries(TOP14.clubs.map(c => [c.id, teamStrength(c, s.pret ? null : s.player)]));
+  const forces = Object.fromEntries(league.clubs.map(c => [c.id, teamStrength(c, s.player)]));
   const po = playoffs(table, rng, forces);
   const rang = table.findIndex(r => r.clubId === s.player.clubId) + 1;
   const resume = { ...seasonSummary(s), classementClub: rang, champion: clubById(po.champion).nom,
     finale: `${clubById(po.finale.home).nom} ${po.finale.scoreHome}-${po.finale.scoreAway} ${clubById(po.finale.away).nom}`,
-    relegue: clubById(po.relegue).nom, championAvecLui: !s.pret && po.champion === s.player.clubId,
-    niveau: s.pret ? s.pret.division : 'Top 14', tableau: table };
-  resume.distinctions = [...distinctions(s, resume, rng), ...(s.interSaison ?? []).map(c => c.distinction).filter(Boolean)];
+    relegue: clubById(po.relegue).nom, championAvecLui: po.champion === s.player.clubId, ligueId: league.id,
+    niveau: s.pret ? `${league.label} (prêt)` : league.label, tableau: table };
+  resume.distinctions = [...distinctions(s, resume, rng, league), ...(s.interSaison ?? []).map(c => c.distinction).filter(Boolean)];
   const { tableau, ...histo } = resume;
   const progressed = progressSeason(s.player, { minutesJouees: s.saisonStats.minutes + (s.saisonStats.espoirs?.minutes ?? 0) / 2 }, rng);
   const player = { ...progressed, age: progressed.age + 1, historique: [...progressed.historique, histo] };
   const out = { ...s, player, annee: s.annee + 1, periodeIndex: -1, periode: null, vusSaison: [], saisonStats: vide(),
     ligue: null, dernierResume: resume, evenementEnCours: null, interSaison: [] };
-  if (s.pret || out.annee >= out.contratFin) {
-    return { ...out, pret: null, phase: 'offres', offresContrat: contractOffers(out, rng) };
+  if (s.pret) {
+    // retour de prêt au club formateur
+    const parent = s.pret.clubParent ?? s.player.clubId;
+    const retour = { ...out, pret: null, clubNom: clubById(parent).nom, player: { ...out.player, clubId: parent } };
+    return { ...retour, phase: 'offres', offresContrat: contractOffers(retour, rng) };
   }
+  if (out.annee >= out.contratFin) return { ...out, phase: 'offres', offresContrat: contractOffers(out, rng) };
   return { ...out, phase: 'bilan', phaseApresBilan: 'pro' };
 }
 
-/** Récompenses de fin de saison (Top 14 uniquement). */
-function distinctions(s, r, rng) {
-  if (s.pret) return [];
+/** Récompenses de fin de saison, propres au championnat joué. */
+function distinctions(s, r, rng, league) {
+  const L = league.label;
+  const du = league.niveau === 1 ? `du ${L}` : `de la ${L}`;
   const ovr = overall(s.player.stats, s.player.positionId);
   const d = [];
   const moy = r.noteMoyenne ?? 0;
   const deja = (t) => s.player.historique.some(h => h.distinctions?.includes(t));
-  if (s.player.age <= 21 && r.matchs >= 10 && moy >= 6.3 && !deja('Révélation du Top 14')) d.push('Révélation du Top 14');
-  if (r.titularisations >= 15 && moy >= 7) d.push('Équipe type du Top 14');
-  if (ovr >= 87 && r.titularisations >= 15 && moy >= 7.3 && rng.chance(0.4)) d.push('Meilleur joueur du Top 14');
+  if (s.player.age <= 21 && r.matchs >= 10 && moy >= 6.3 && !deja(`Révélation ${du}`)) d.push(`Révélation ${du}`);
+  if (r.titularisations >= 15 && moy >= 7) d.push(`Équipe type ${du}`);
+  if (ovr >= (league.niveau === 1 ? 87 : league.niveau === 2 ? 76 : 68) && r.titularisations >= 15 && moy >= 7.3 && rng.chance(0.4)) d.push(`Meilleur joueur ${du}`);
+  if (r.championAvecLui && league.niveau === 2) d.push('Champion de Pro D2 (montée en Top 14)');
+  if (r.championAvecLui && league.niveau === 3) d.push('Champion de Nationale');
   if (s.player.age >= 21 && ovr >= 93 && r.titularisations >= 16 && moy >= 7.6 && rng.chance(0.35)) d.push('Meilleur joueur du monde World Rugby');
   return d;
 }
@@ -207,8 +202,12 @@ export function acceptOffer(state, i) {
   const base = { ...state, offresContrat: null, phase: 'pro', periodeIndex: -1, periode: null, saisonStats: vide(), ligue: null };
   if (o.type === 'centre') return { ...state, offresContrat: null, phase: 'centre', journal: [...state.journal, 'Tu termines ta formation au centre.'] };
   if (o.type === 'liberation') return { ...base, phase: 'fin', journal: [...state.journal, "Le club ne te garde pas. Fin de l'aventure… pour l'instant."] };
-  if (o.type === 'pret') return { ...base, pret: { division: o.division }, contratFin: state.annee + 1,
-    journal: [...state.journal, `Prêt d'un an en ${o.division}.`] };
+  if (o.type === 'pret') {
+    const cible = (o.division === 'Pro D2' ? leagueById('prod2') : leagueById('nationale')).clubs;
+    const club = o.pretClubId ? clubById(o.pretClubId) : cible[Math.floor(((state.rngState ?? 1) % 997) / 997 * cible.length)];
+    return { ...base, pret: { division: o.division, clubParent: state.player.clubId }, clubNom: club.nom, player: { ...state.player, clubId: club.id },
+      contratFin: state.annee + 1, journal: [...state.journal, `Prêt d'un an à ${club.nom} (${o.division}).`] };
+  }
   return { ...base, pret: null, clubNom: clubById(o.clubId).nom, player: { ...state.player, clubId: o.clubId }, contratFin: state.annee + o.duree,
     journal: [...state.journal, `Contrat de ${o.duree} an${o.duree > 1 ? 's' : ''} signé avec ${clubById(o.clubId).nom} (${o.role}).`] };
 }
@@ -226,28 +225,28 @@ export function seasonSummary(state) {
     competitions: state.interSaison ?? [] };
 }
 
-/** Offres de contrat pro (1 à 3 clubs du Top 14) selon la note du joueur. */
+/** Offres de contrat selon la note du joueur, dans les trois divisions françaises. */
 export function contractOffers(state, rng) {
   const p = state.player;
   const ovr = overall(p.stats, p.positionId);
-  if (ovr < 52) return [{ type: 'pret', clubId: p.clubId, duree: 1, division: 'Nationale', role: 'titulaire' },
-    { type: 'liberation', clubId: null, duree: 0 }];
-  const maxPrestige = ovr >= 82 ? 5 : ovr >= 75 ? 4 : ovr >= 66 ? 3 : 2;
-  const roleFor = (club) => {
-    const rivals = club.joueurs.filter(j => j.positionId === p.positionId).map(j => j.note).sort((a, b) => b - a);
-    const n = rivals.filter(x => x > ovr).length;
-    return n === 0 ? 'titulaire' : n <= 2 ? 'rotation' : 'espoir';
-  };
-  const offers = [];
   const own = clubById(p.clubId);
-  if (own && (ovr >= 58 || rng.chance(0.5))) offers.push({ type: 'pro', clubId: own.id, duree: rng.int(1, 3), role: roleFor(own) });
-  const autres = TOP14.clubs.filter(c => c.id !== p.clubId && c.prestige <= maxPrestige);
-  const n = Math.min(autres.length, ovr >= 70 ? 2 : 1);
-  for (let i = 0; i < n; i++) {
-    const c = autres.splice(rng.int(0, autres.length - 1), 1)[0];
-    offers.push({ type: 'pro', clubId: c.id, duree: rng.int(1, 4), role: roleFor(c) });
+  const offers = [];
+  const ajoute = (club, duree) => { if (club && !offers.some(o => o.clubId === club.id)) offers.push({ type: 'pro', clubId: club.id, duree, role: roleFor(club, p) }); };
+  // un club recrute un joueur proche de son niveau (rotation au minimum), ou nettement au-dessus
+  const clubs = allClubs().map(c => ({ c, n: niveauClub(c) }));
+  const adaptes = clubs.filter(({ c, n }) => c.id !== p.clubId && ovr >= n - 9 && ovr <= n + 14).sort((a, b) => b.n - a.n);
+  if (own && ovr >= niveauClub(own) - 10) ajoute(own, rng.int(1, 3));
+  const nb = ovr >= 70 ? 3 : 2;
+  const pool = adaptes.slice(0, 8);
+  while (offers.length < nb && pool.length) ajoute(pool.splice(rng.int(0, pool.length - 1), 1)[0].c, rng.int(1, 4));
+  if (!offers.length) {
+    // filet de sécurité : le club de Nationale le plus proche de son niveau
+    const plusProche = clubs.filter(x => leagueOfClub(x.c.id).niveau === 3).sort((a, b) => Math.abs(a.n - ovr) - Math.abs(b.n - ovr));
+    ajoute(plusProche[0].c, 1); ajoute(plusProche[1].c, 2);
   }
-  if (ovr < 62) offers.push({ type: 'pret', clubId: p.clubId, duree: 1, division: 'Pro D2', role: 'rotation' });
+  // un jeune barré dans son club peut partir en prêt dans la division du dessous
+  const lvl = leagueOfClub(p.clubId)?.niveau;
+  if (own && p.age <= 23 && lvl < 3 && ovr < niveauClub(own) - 6) offers.push({ type: 'pret', clubId: p.clubId, duree: 1, division: lvl === 1 ? 'Pro D2' : 'Nationale', role: 'titulaire' });
   return offers;
 }
 

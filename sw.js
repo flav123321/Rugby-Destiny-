@@ -1,6 +1,6 @@
 // Service worker : tout le jeu en cache pour jouer hors connexion.
 // À chaque mise à jour : changer la version dans package.json ET ici.
-const CACHE = 'rugby-carriere-0.2.0';
+const CACHE = 'rugby-carriere-0.3.0';
 const FILES = [
   './',
   './icons/icon-180.png',
@@ -8,14 +8,18 @@ const FILES = [
   './icons/icon-512.png',
   './index.html',
   './manifest.webmanifest',
-  './src/data/events.js',
   './src/data/events-plus.js',
+  './src/data/events.js',
+  './src/data/leagues/build.js',
+  './src/data/leagues/index.js',
+  './src/data/leagues/nationale.js',
+  './src/data/leagues/prod2.js',
   './src/data/leagues/top14-notes.js',
   './src/data/leagues/top14-raw.js',
   './src/data/leagues/top14.js',
   './src/data/nationalities.js',
-  './src/data/nations.js',
   './src/data/nations-squads.js',
+  './src/data/nations.js',
   './src/data/personalities.js',
   './src/data/positions.js',
   './src/engine/academy.js',

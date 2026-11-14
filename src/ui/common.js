@@ -1,5 +1,5 @@
 import { crestSvg } from '../engine/crest.js';
-import { clubById } from '../data/leagues/top14.js';
+import { clubById, leagueOfClub } from '../data/leagues/index.js';
 import { positionById, STAT_KEYS, STAT_LABELS } from '../data/positions.js';
 import { nationalityById } from '../data/nationalities.js';
 import { overall } from '../engine/rating.js';
@@ -7,6 +7,7 @@ import { overall } from '../engine/rating.js';
 export const esc = (s) => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export const crest = (clubId, size = 40) => { const c = clubById(clubId); return c ? `<span class="crest">${crestSvg(c, size)}</span>` : ''; };
 export const clubNom = (id) => clubById(id)?.nom ?? '—';
+export const ligueNom = (clubId) => leagueOfClub(clubId)?.label ?? '';
 
 export function header(career) {
   const p = career.player;
@@ -36,7 +37,7 @@ export function historyTable(historique) {
   if (!historique.length) return '<p class="muted">Aucune saison terminée pour l’instant.</p>';
   return `<div class="scroll"><table>
     <tr><th>Saison</th><th>Club / niveau</th><th>Âge</th><th>M</th><th>Tit.</th><th>Essais</th><th>Pts</th><th>Note</th></tr>
-    ${historique.map(h => `<tr><td>${esc(h.saison)}</td><td>${esc(h.club ?? '')}<br><span class="muted">${esc(h.niveau ?? h.categorie ?? '')}${h.classementClub ? ` · ${h.classementClub}e` : ''}${h.championAvecLui ? ' · 🏆' : ''}</span>${h.top14?.matchs ? `<br><span class="muted">+ Top 14 : ${h.top14.matchs} m, ${h.top14.essais} essais</span>` : ''}${h.inter ? `<br><span class="muted">+ Sélection : ${h.inter.matchs} m, ${h.inter.essais} essais</span>` : ''}${h.u20 ? `<br><span class="muted">+ U20 : ${h.u20.matchs} m</span>` : ''}${h.distinctions?.length ? `<br>🏅 ${h.distinctions.map(esc).join(', ')}` : ''}${h.espoirs ? `<br><span class="muted">+ Espoirs : ${h.espoirs.matchs} m, ${h.espoirs.essais} essais, note ${h.espoirs.noteMoyenne ?? '–'}</span>` : ''}</td>
+    ${historique.map(h => `<tr><td>${esc(h.saison)}</td><td>${esc(h.club ?? '')}<br><span class="muted">${esc(h.niveau ?? h.categorie ?? '')}${h.classementClub ? ` · ${h.classementClub}e` : ''}${h.championAvecLui ? ' · 🏆' : ''}</span>${h.top14?.matchs ? `<br><span class="muted">+ Avec les pros : ${h.top14.matchs} m, ${h.top14.essais} essais</span>` : ''}${h.inter ? `<br><span class="muted">+ Sélection : ${h.inter.matchs} m, ${h.inter.essais} essais</span>` : ''}${h.u20 ? `<br><span class="muted">+ U20 : ${h.u20.matchs} m</span>` : ''}${h.distinctions?.length ? `<br>🏅 ${h.distinctions.map(esc).join(', ')}` : ''}${h.espoirs ? `<br><span class="muted">+ Espoirs : ${h.espoirs.matchs} m, ${h.espoirs.essais} essais, note ${h.espoirs.noteMoyenne ?? '–'}</span>` : ''}</td>
       <td>${h.age}</td><td>${h.matchs}</td><td>${h.titularisations}</td><td>${h.essais}</td><td>${h.points}</td><td>${h.noteMoyenne ?? '–'}</td></tr>`).join('')}
   </table></div>`;
 }

@@ -2,7 +2,7 @@ import { esc, crest } from '../common.js';
 import { NATIONALITIES, ACADEMY_COUNTRIES } from '../../data/nationalities.js';
 import { POSITIONS, positionById } from '../../data/positions.js';
 import { PERSONALITIES } from '../../data/personalities.js';
-import { clubById } from '../../data/leagues/top14.js';
+import { clubById, leagueOfClub } from '../../data/leagues/index.js';
 
 const stepsBar = (n) => `<div class="steps">${[1, 2, 3, 4, 5].map(i => `<i class="${i <= n ? 'on' : ''}"></i>`).join('')}</div>`;
 const nav = (ok, label = 'Suivant') => `<button class="btn primary" data-action="c-next" ${ok ? '' : 'disabled'}>${label}</button>
@@ -55,6 +55,6 @@ export function renderCreation(ui) {
   }
   return `${stepsBar(5)}<h1>Trois clubs te veulent</h1><p class="muted">Leurs recruteurs t’ont repéré. Où signes-tu ta convention de formation ?</p>
     ${c.offres.map(id => { const cl = clubById(id); return `<button class="btn" data-action="c-club" data-v="${id}"><span class="club-row">${crest(id, 40)}
-      <span><b>${esc(cl.nom)}</b><small>Centre de formation ${'★'.repeat(cl.centreFormation)}${'☆'.repeat(5 - cl.centreFormation)} · Prestige ${'★'.repeat(cl.prestige)}</small></span></span></button>`; }).join('')}
+      <span><b>${esc(cl.nom)}</b><small>${esc(leagueOfClub(id).label)} · Centre de formation ${'★'.repeat(cl.centreFormation)}${'☆'.repeat(5 - cl.centreFormation)} · Prestige ${'★'.repeat(cl.prestige)}</small></span></span></button>`; }).join('')}
     <button class="btn ghost" data-action="c-reset-pays">Retour</button>`;
 }
