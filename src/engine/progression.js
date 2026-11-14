@@ -5,10 +5,10 @@ import { overall } from './rating.js';
 const PHYSIQUES = ['puissance', 'vitesse', 'endurance'];
 
 function baseGain(age, physique) {
-  if (age <= 20) return 3.2;
-  if (age <= 23) return 2.2;
-  if (age <= 25) return 1;
-  if (age <= 29) return 0.2;
+  if (age <= 20) return 4;
+  if (age <= 23) return 3;
+  if (age <= 25) return 1.6;
+  if (age <= 29) return 0.5;
   if (age === 30) return physique ? -0.5 : 0;
   if (age <= 32) return physique ? -1.8 : -0.3;
   return physique ? -3 : -1;
@@ -25,7 +25,7 @@ export function progressSeason(player, { minutesJouees = 0, entrainementBonus = 
   for (const k of STAT_KEYS) {
     const physique = PHYSIQUES.includes(k);
     let g = baseGain(player.age, physique);
-    if (g > 0) g = g * mult + (player.age <= 25 ? minutesJouees / 1600 : 0) + entrainementBonus * 0.3;
+    if (g > 0) g = g * mult + (player.age <= 25 ? minutesJouees / 1100 : 0) + entrainementBonus * 0.3;
     g += rng.next() * 2 - 1;
     gains[k] = Math.round(g);
     stats[k] = clampStat(stats[k] + gains[k]);
