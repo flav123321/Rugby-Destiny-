@@ -5,25 +5,27 @@ import { overall } from './rating.js';
 const PHYSIQUES = ['puissance', 'vitesse', 'endurance'];
 
 function baseGain(age, physique) {
-  if (age <= 20) return 3.5;
-  if (age <= 23) return 2.5;
-  if (age <= 25) return 1.2;
-  if (age <= 30) return 0.4;
-  if (age <= 32) return physique ? -1.5 : 0.2;
-  return physique ? -3 : -0.5;
+  if (age <= 20) return 3.2;
+  if (age <= 23) return 2.2;
+  if (age <= 25) return 1;
+  if (age <= 29) return 0.2;
+  if (age === 30) return physique ? -0.5 : 0;
+  if (age <= 32) return physique ? -1.8 : -0.3;
+  return physique ? -3 : -1;
 }
 
 /** Progression de fin de saison : âge, temps de jeu, entraînement, personnalités ; plafonnée par le potentiel. */
 export function progressSeason(player, { minutesJouees = 0, entrainementBonus = 0 } = {}, rng) {
   const before = overall(player.stats, player.positionId);
-  const plafond = Math.max(player.potentiel, before);
+  // au-dessus du potentiel (bonus d'événements), la note redescend doucement
+  const plafond = before > player.potentiel ? before - 1 : player.potentiel;
   const mult = (hasTag(player, 'progression+') ? 1.25 : 1);
   const stats = { ...player.stats };
   const gains = {};
   for (const k of STAT_KEYS) {
     const physique = PHYSIQUES.includes(k);
     let g = baseGain(player.age, physique);
-    if (g > 0) g = g * mult + minutesJouees / 1200 + entrainementBonus * 0.3;
+    if (g > 0) g = g * mult + (player.age <= 25 ? minutesJouees / 1600 : 0) + entrainementBonus * 0.3;
     g += rng.next() * 2 - 1;
     gains[k] = Math.round(g);
     stats[k] = clampStat(stats[k] + gains[k]);

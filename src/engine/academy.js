@@ -18,7 +18,7 @@ function jeunesMatchs(state, rng) {
   const st = { ...state.saisonStats, notes: [...state.saisonStats.notes] };
   if (p.blessure) return st;
   const ovr = overall(p.stats, p.positionId);
-  const seuil = 34 + (p.age - 16) * 6; // le niveau requis monte avec la catégorie
+  const seuil = 42 + (p.age - 16) * 5; // le niveau requis monte avec la catégorie
   for (let i = 0; i < 4; i++) {
     st.matchs++;
     const titulaire = ovr + rng.int(-6, 6) >= seuil;
@@ -51,7 +51,10 @@ export function academyStep(state, rng) {
   if (idx >= PERIODES.length) {
     // fin de saison : progression, anniversaire, nouvelle saison
     const player = progressSeason(s.player, { minutesJouees: s.saisonStats.minutes, entrainementBonus: 1 }, rng);
-    const resume = { saison: saisonLabel(s.annee), age: s.player.age, categorie: CATEGORIES[s.player.age], ...s.saisonStats };
+    const { notes, ...st } = s.saisonStats;
+    const noteMoyenne = notes.length ? Math.round(notes.reduce((a, b) => a + b, 0) / notes.length * 10) / 10 : null;
+    const resume = { saison: saisonLabel(s.annee), age: s.player.age, categorie: CATEGORIES[s.player.age], niveau: CATEGORIES[s.player.age],
+      club: s.clubNom ?? null, ...st, noteMoyenne };
     s.player = { ...player, age: player.age + 1, historique: [...player.historique, resume] };
     s.annee += 1; s.vusSaison = [];
     s.saisonStats = { matchs: 0, titularisations: 0, minutes: 0, essais: 0, points: 0, notes: [] };
