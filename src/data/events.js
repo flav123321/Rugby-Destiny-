@@ -1,10 +1,11 @@
+import { EVENTS_PLUS } from './events-plus.js';
 // Événements aléatoires. phase : 'centre' (16-19 ans), 'pro' ou 'tous'. periode facultative.
 // tags 'requiertApte' : jamais proposé à un joueur blessé. condition(state) facultative.
 const poste = (s) => s.player.positionId;
 const avant = (s) => ['pilier-gauche', 'talonneur', 'pilier-droit', 'deuxieme-ligne', 'troisieme-ligne-aile', 'numero-8'].includes(poste(s));
 const has = (s, id) => s.player.personnaliteIds.includes(id);
 
-export const EVENTS = [
+const EVENTS_BASE = [
   // ───────────── CENTRE DE FORMATION ─────────────
   { id: 'c-premier-jour', phase: 'centre', periode: 'presaison', poids: 6, condition: (s) => s.player.age === 16,
     texte: "Premier jour au centre de formation. Dans le vestiaire, les anciens te jaugent. Le responsable te demande de te présenter devant tout le groupe.",
@@ -281,3 +282,5 @@ export const EVENTS = [
       { label: 'Préférer vivre seul', effets: { forme: 3, texteResultat: 'Calme et indépendance.' } },
     ] },
 ];
+
+export const EVENTS = [...EVENTS_BASE, ...EVENTS_PLUS];

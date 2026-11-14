@@ -5,9 +5,18 @@ export const PERIODES = ['presaison', 'automne', 'hiver', 'printemps', 'ete'];
 export const PERIODE_LABELS = { presaison: 'Présaison', automne: 'Automne', hiver: 'Hiver', printemps: 'Printemps', ete: 'Été' };
 export const eventById = (id) => EVENTS.find(e => e.id === id);
 
+/** Un événement vu ne revient pas avant DELAI_REPETITION saisons (sauf si plus rien d'autre n'est possible). */
+export const DELAI_REPETITION = 2;
+
 export function drawEvent(state, periode, rng) {
+  const vus = state.vus ?? {};
+  const recent = (e) => vus[e.id] !== undefined && (state.annee ?? 0) - vus[e.id] < DELAI_REPETITION;
+  return tirage(state, periode, rng, recent) ?? tirage(state, periode, rng, () => false);
+}
+
+function tirage(state, periode, rng, exclu) {
   const apte = !state.player.blessure;
-  const pool = EVENTS.filter(e =>
+  const pool = EVENTS.filter(e => !exclu(e) &&
     (e.phase === state.phase || e.phase === 'tous') &&
     (!e.periode || e.periode === periode) &&
     !(state.vusSaison ?? []).includes(e.id) &&
@@ -37,6 +46,7 @@ export function applyChoice(state, event, choixIndex) {
     player: p,
     flags: [...new Set([...(state.flags ?? []), ...(e.flags ?? [])])],
     vusSaison: [...(state.vusSaison ?? []), event.id],
+    vus: { ...(state.vus ?? {}), [event.id]: state.annee ?? 0 },
     journal: [...(state.journal ?? []), e.texteResultat],
   };
 }

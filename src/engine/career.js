@@ -2,7 +2,12 @@ import { createRng } from './rng.js';
 import { createPlayer } from './player.js';
 import { overall } from './rating.js';
 import { TOP14, clubById } from '../data/leagues/top14.js';
-import { academyStep, newAcademyState, saisonLabel, CATEGORIES } from './academy.js';
+import { academyStep, newAcademyState, saisonLabel, CATEGORIES, matchListe, pushListe } from './academy.js';
+
+const ADVERSAIRES = {
+  'Pro D2': ['US Montauban', 'Provence Rugby', 'FC Grenoble', 'Biarritz Olympique', 'US Dax', 'SU Agen', 'Colomiers Rugby', 'AS Béziers', 'Stade Aurillacois', 'USON Nevers', 'Oyonnax Rugby', 'Stade Niçois'],
+  Nationale: ['Stade Montois', 'CA Périgueux', 'CS Bourgoin-Jallieu', 'RC Massy', 'Rouen Normandie', 'RC Narbonne', 'US Carcassonne', 'Chambéry'],
+};
 import { PERIODES, drawEvent, applyChoice, eventById } from './events.js';
 import { buildFixtures, standings, playoffs, teamStrength, playDay } from './season.js';
 import { progressSeason } from './progression.js';
@@ -130,7 +135,13 @@ function proStep(state, rng) {
       if (tit) st.titularisations++;
       const min = tit ? rng.int(50, 80) : rng.int(0, 25);
       st.minutes += min;
-      if (min) { const e = rng.chance(0.13) ? 1 : 0; st.essais += e; st.points += e * 5; st.notes.push(Math.max(0, Math.min(10, Math.round((5.5 + (ovr - seuil) / 6 + rng.next() * 2 - 1) * 10) / 10))); }
+      let perf = { statut: tit ? 'titulaire' : (min ? 'remplacant' : 'banc'), minutes: min, essais: 0, note: null };
+      if (min) {
+        const e = rng.chance(0.13) ? 1 : 0; st.essais += e; st.points += e * 5;
+        const note = Math.max(0, Math.min(10, Math.round((5.5 + (ovr - seuil) / 6 + rng.next() * 2 - 1) * 10) / 10));
+        st.notes.push(note); perf = { ...perf, essais: e, note };
+      }
+      s.matchsJeunes = pushListe(s.matchsJeunes, matchListe(s.pret.division, rng.pick(ADVERSAIRES[s.pret.division] ?? ['Adversaire']), perf, rng));
     }
   }
   s.ligue = ligue; s.saisonStats = st;

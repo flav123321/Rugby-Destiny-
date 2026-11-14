@@ -43,3 +43,12 @@ test('F5 : signer la prolongation allonge le contrat de 2 ans', () => {
   assert.equal(choose(s, 0).contratFin, 2031);
   assert.equal(choose(s, 1).contratFin, 2029);
 });
+
+test('le service worker met en cache tous les fichiers du jeu', async () => {
+  const { readdirSync, statSync } = await import('node:fs');
+  const { join, relative } = await import('node:path');
+  const root = new URL('..', import.meta.url).pathname;
+  const sw = readFileSync(new URL('../sw.js', import.meta.url), 'utf8');
+  const walk = (d) => readdirSync(d).flatMap(f => statSync(join(d, f)).isDirectory() ? walk(join(d, f)) : [join(d, f)]);
+  for (const f of walk(join(root, 'src'))) assert.ok(sw.includes(`'./${relative(root, f)}'`), relative(root, f));
+});

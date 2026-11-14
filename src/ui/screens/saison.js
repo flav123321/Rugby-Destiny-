@@ -28,7 +28,20 @@ export function renderMatchsRecents(s) {
   const niveau = s.phase === 'centre' ? 'Ma saison' : s.pret ? `Prêt en ${s.pret.division}` : 'Top 14';
   const esp = st.espoirs;
   const resume = blocStats(niveau, st) + (s.phase === 'pro' && !s.pret && esp?.matchs ? blocStats('Espoirs', esp) : '');
+  if (s.phase === 'centre' || s.pret) return resume + renderListeJeunes(s);
   return renderListe(s, resume);
+}
+
+function renderListeJeunes(s) {
+  const matchs = (s.matchsJeunes ?? []).slice(-8).reverse();
+  if (!matchs.length) return '<p class="muted">Aucun match joué pour l’instant.</p>';
+  return `<h3>Mes derniers matchs</h3>${matchs.map(m => {
+    const p = m.perf;
+    const perf = p.statut === 'banc' ? '<span class="muted">Resté sur le banc</span>'
+      : `${p.statut === 'titulaire' ? 'Titulaire' : 'Remplaçant'} · ${p.minutes}′ · note <b>${p.note}</b>${p.essais ? ' · 1 essai' : ''}`;
+    const res = m.gagne ? '✅' : '❌';
+    return `<div class="card"><span class="muted">${esc(m.categorie)}</span> · ${res} ${m.domicile ? 'contre' : 'chez'} ${esc(m.adversaire)} <b>${m.score}</b><br>${perf}</div>`;
+  }).join('')}`;
 }
 
 function renderListe(s, resume) {
