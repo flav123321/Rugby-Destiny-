@@ -35,7 +35,7 @@ export function historyTable(historique) {
   if (!historique.length) return '<p class="muted">Aucune saison terminée pour l’instant.</p>';
   return `<div class="scroll"><table>
     <tr><th>Saison</th><th>Club / niveau</th><th>Âge</th><th>M</th><th>Tit.</th><th>Essais</th><th>Pts</th><th>Note</th></tr>
-    ${historique.map(h => `<tr><td>${esc(h.saison)}</td><td>${esc(h.club ?? '')}<br><span class="muted">${esc(h.niveau ?? h.categorie ?? '')}${h.classementClub ? ` · ${h.classementClub}e` : ''}${h.championAvecLui ? ' · 🏆' : ''}</span></td>
+    ${historique.map(h => `<tr><td>${esc(h.saison)}</td><td>${esc(h.club ?? '')}<br><span class="muted">${esc(h.niveau ?? h.categorie ?? '')}${h.classementClub ? ` · ${h.classementClub}e` : ''}${h.championAvecLui ? ' · 🏆' : ''}</span>${h.espoirs ? `<br><span class="muted">+ Espoirs : ${h.espoirs.matchs} m, ${h.espoirs.essais} essais, note ${h.espoirs.noteMoyenne ?? '–'}</span>` : ''}</td>
       <td>${h.age}</td><td>${h.matchs}</td><td>${h.titularisations}</td><td>${h.essais}</td><td>${h.points}</td><td>${h.noteMoyenne ?? '–'}</td></tr>`).join('')}
   </table></div>`;
 }

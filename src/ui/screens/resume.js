@@ -5,7 +5,8 @@ const ROLES = { titulaire: 'Titulaire', rotation: 'Rotation', espoir: 'Espoir' }
 function bilanCard(r) {
   return r ? `<div class="card"><h3>Bilan ${esc(r.saison)}</h3>
     <p><b>${esc(r.club)}</b> · ${esc(r.niveau ?? '')} · ${r.age} ans</p>
-    <p>${r.matchs} matchs · ${r.titularisations} titularisations · ${r.minutes} min · ${r.essais} essais · ${r.points} pts · note moyenne ${r.noteMoyenne ?? '–'}</p>
+    <p>${r.niveau && !r.categorie ? `<b>${esc(r.niveau)}</b> : ` : ''}${r.matchs} matchs · ${r.titularisations} titularisations · ${r.minutes} min · ${r.essais} essai${r.essais > 1 ? 's' : ''} · ${r.points} pts · note moyenne ${r.noteMoyenne ?? '–'}</p>
+    ${r.espoirs ? `<p><b>Espoirs</b> : ${r.espoirs.matchs} matchs · ${r.espoirs.titularisations} titularisations · ${r.espoirs.minutes} min · ${r.espoirs.essais} essai${r.espoirs.essais > 1 ? 's' : ''} · note moyenne ${r.espoirs.noteMoyenne ?? '–'}</p>` : ''}
     ${r.champion ? `<p class="muted">Champion de France : ${esc(r.champion)} (${esc(r.finale)}) · relégué : ${esc(r.relegue)}${r.classementClub ? ` · ton club : ${r.classementClub}e` : ''}</p>` : ''}
     ${r.championAvecLui ? '<p>🏆 <b>Tu es champion de France !</b></p>' : ''}</div>` : '';
 }

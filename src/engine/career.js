@@ -10,7 +10,26 @@ import { rollInjury, tickInjury } from './injuries.js';
 
 // Répartition des 26 journées de Top 14 sur les périodes.
 const JOURNEES = { presaison: [0, 0], automne: [0, 9], hiver: [9, 17], printemps: [17, 26], ete: [26, 26] };
-const vide = () => ({ matchs: 0, titularisations: 0, minutes: 0, essais: 0, points: 0, plaquages: 0, notes: [] });
+const videEspoirs = () => ({ matchs: 0, titularisations: 0, minutes: 0, essais: 0, points: 0, notes: [] });
+const vide = () => ({ matchs: 0, titularisations: 0, minutes: 0, essais: 0, points: 0, plaquages: 0, notes: [], espoirs: videEspoirs() });
+export const AGE_MAX_ESPOIRS = 22;
+const TRY_ESPOIRS = { ailier: 0.3, arriere: 0.2, centre: 0.2, 'numero-8': 0.15, 'troisieme-ligne-aile': 0.12, talonneur: 0.12 };
+
+/** Match avec l'équipe Espoirs du club, quand le joueur n'est pas retenu en Top 14. */
+function matchEspoirs(player, esp, rng) {
+  const ovr = overall(player.stats, player.positionId);
+  const seuil = 56; // niveau du championnat Espoirs
+  const tit = ovr + rng.int(-6, 6) >= seuil;
+  esp.matchs++;
+  if (tit) esp.titularisations++;
+  const minutes = tit ? rng.int(55, 80) : rng.int(15, 35);
+  esp.minutes += minutes;
+  const essais = rng.chance((TRY_ESPOIRS[player.positionId] ?? 0.07) * minutes / 80) ? 1 : 0;
+  esp.essais += essais; esp.points += essais * 5;
+  const note = Math.max(0, Math.min(10, Math.round((5.5 + (ovr - seuil) / 6 + essais * 0.8 + rng.next() * 2 - 1) * 10) / 10));
+  esp.notes.push(note);
+  return { statut: tit ? 'titulaire' : 'remplacant', minutes, essais, note };
+}
 
 function withRng(state, fn) {
   const rng = createRng(0); rng.setState(state.rngState);
@@ -78,6 +97,8 @@ function proStep(state, rng) {
   const [from, to] = JOURNEES[s.periode];
   const ligue = { ...s.ligue, results: [...s.ligue.results], joueurMatchs: [...s.ligue.joueurMatchs] };
   const st = { ...s.saisonStats, notes: [...s.saisonStats.notes] };
+  const esp = s.saisonStats.espoirs ? { ...s.saisonStats.espoirs, notes: [...s.saisonStats.espoirs.notes] } : videEspoirs();
+  st.espoirs = esp;
   const enPret = !!s.pret;
   const playerTop14 = enPret ? null : s.player;
   const forces = Object.fromEntries(TOP14.clubs.map(c => [c.id, teamStrength(c, playerTop14)]));
@@ -93,7 +114,8 @@ function proStep(state, rng) {
           st.minutes += perfJoueur.minutes; st.essais += perfJoueur.essais; st.points += perfJoueur.points;
           st.plaquages += perfJoueur.plaquages; st.notes.push(perfJoueur.note);
         }
-        ligue.joueurMatchs.push({ journee: j + 1, home: h, away: a, score: `${res.scoreHome}-${res.scoreAway}`, perf: perfJoueur });
+        const espoirs = !perfJoueur && !s.player.blessure && s.player.age <= AGE_MAX_ESPOIRS ? matchEspoirs(s.player, esp, rng) : null;
+        ligue.joueurMatchs.push({ journee: j + 1, home: h, away: a, score: `${res.scoreHome}-${res.scoreAway}`, perf: perfJoueur, espoirs });
       }
     }
     ligue.journee = j + 1;
@@ -126,7 +148,7 @@ function finDeSaison(s, rng) {
     relegue: clubById(po.relegue).nom, championAvecLui: !s.pret && po.champion === s.player.clubId,
     niveau: s.pret ? s.pret.division : 'Top 14', tableau: table };
   const { tableau, ...histo } = resume;
-  const progressed = progressSeason(s.player, { minutesJouees: s.saisonStats.minutes }, rng);
+  const progressed = progressSeason(s.player, { minutesJouees: s.saisonStats.minutes + (s.saisonStats.espoirs?.minutes ?? 0) / 2 }, rng);
   const player = { ...progressed, age: progressed.age + 1, historique: [...progressed.historique, histo] };
   const out = { ...s, player, annee: s.annee + 1, periodeIndex: -1, periode: null, vusSaison: [], saisonStats: vide(),
     ligue: null, dernierResume: resume, evenementEnCours: null };
@@ -157,12 +179,16 @@ export function acceptOffer(state, i) {
     journal: [...state.journal, `Contrat de ${o.duree} an${o.duree > 1 ? 's' : ''} signé avec ${clubById(o.clubId).nom} (${o.role}).`] };
 }
 
+const moyenne = (n) => n?.length ? Math.round(n.reduce((a, b) => a + b, 0) / n.length * 10) / 10 : null;
+
 export function seasonSummary(state) {
   const st = state.saisonStats;
   const notes = st.notes ?? [];
+  const e = st.espoirs;
+  const espoirs = e && e.matchs ? { matchs: e.matchs, titularisations: e.titularisations, minutes: e.minutes, essais: e.essais, points: e.points, noteMoyenne: moyenne(e.notes) } : null;
   return { saison: saisonLabel(state.annee), age: state.player.age, club: clubById(state.player.clubId)?.nom ?? '—',
     matchs: st.matchs, titularisations: st.titularisations, minutes: st.minutes, essais: st.essais, points: st.points,
-    noteMoyenne: notes.length ? Math.round(notes.reduce((a, b) => a + b, 0) / notes.length * 10) / 10 : null };
+    noteMoyenne: moyenne(notes), espoirs };
 }
 
 /** Offres de contrat pro (1 à 3 clubs du Top 14) selon la note du joueur. */

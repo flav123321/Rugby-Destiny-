@@ -11,21 +11,33 @@ export function renderSaisonTab(s) {
   </table></div>`;
 }
 
-export function renderMatchsRecents(s) {
-  const st = s.saisonStats;
-  const moy = st.notes.length ? (st.notes.reduce((a, b) => a + b, 0) / st.notes.length).toFixed(1) : '–';
-  const resume = `<div class="card"><div class="grid g3" style="text-align:center">
+const moyenne = (n) => n?.length ? (n.reduce((a, b) => a + b, 0) / n.length).toFixed(1) : '–';
+
+function blocStats(titre, st) {
+  return `<div class="card"><h3>${titre}</h3><div class="grid g3" style="text-align:center">
     <div><b>${st.matchs}</b><br><span class="muted">matchs</span></div>
     <div><b>${st.titularisations}</b><br><span class="muted">titularisations</span></div>
     <div><b>${st.essais}</b><br><span class="muted">essais</span></div>
     <div><b>${st.minutes}</b><br><span class="muted">minutes</span></div>
     <div><b>${st.points}</b><br><span class="muted">points</span></div>
-    <div><b>${moy}</b><br><span class="muted">note moy.</span></div></div></div>`;
+    <div><b>${moyenne(st.notes)}</b><br><span class="muted">note moy.</span></div></div></div>`;
+}
+
+export function renderMatchsRecents(s) {
+  const st = s.saisonStats;
+  const niveau = s.phase === 'centre' ? 'Ma saison' : s.pret ? `Prêt en ${s.pret.division}` : 'Top 14';
+  const esp = st.espoirs;
+  const resume = blocStats(niveau, st) + (s.phase === 'pro' && !s.pret && esp?.matchs ? blocStats('Espoirs', esp) : '');
+  return renderListe(s, resume);
+}
+
+function renderListe(s, resume) {
   const matchs = (s.ligue?.joueurMatchs ?? []).slice(-6).reverse();
   if (!matchs.length) return resume;
   return resume + `<h3>Derniers matchs du club</h3>${matchs.map(m => {
     const p = m.perf;
-    const perf = !p ? '<span class="muted">Non retenu</span>'
+    const e = m.espoirs;
+    const perf = !p ? (e ? `<span class="muted">Non retenu en Top 14</span> · avec les Espoirs : ${e.statut === 'titulaire' ? 'titulaire' : 'remplaçant'}, ${e.minutes}′, note <b>${e.note}</b>${e.essais ? ' · 1 essai' : ''}` : '<span class="muted">Non retenu</span>')
       : `${p.statut === 'titulaire' ? 'Titulaire' : 'Remplaçant'} · ${p.minutes}′ · note <b>${p.note}</b>${p.essais ? ` · ${p.essais} essai${p.essais > 1 ? 's' : ''}` : ''}${p.points && !p.essais ? ` · ${p.points} pts` : ''}`;
     return `<div class="card"><span class="muted">J${m.journee}</span> ${esc(clubNom(m.home))} <b>${m.score}</b> ${esc(clubNom(m.away))}<br>${perf}</div>`;
   }).join('')}`;
