@@ -1,4 +1,5 @@
 import { EVENTS_PLUS } from './events-plus.js';
+import { EVENTS_VIVANTS } from './events-vivants.js';
 // Événements aléatoires. phase : 'centre' (16-19 ans), 'pro' ou 'tous'. periode facultative.
 // tags 'requiertApte' : jamais proposé à un joueur blessé. condition(state) facultative.
 const poste = (s) => s.player.positionId;
@@ -283,4 +284,4 @@ const EVENTS_BASE = [
     ] },
 ];
 
-export const EVENTS = [...EVENTS_BASE, ...EVENTS_PLUS];
+export const EVENTS = [...EVENTS_BASE, ...EVENTS_PLUS, ...EVENTS_VIVANTS];

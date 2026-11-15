@@ -4,5 +4,6 @@ Jeu de carrière de rugbyman (Top 14 2026-27), publié avec GitHub Pages depuis 
 
 - Tests : `npm test` (Node 20+, aucune dépendance).
 - À chaque mise à jour publiée : augmente `version` dans `package.json` ET le nom du cache dans `sw.js` (un test le vérifie), sinon l'iPhone garde l'ancienne version.
+- Après avoir ajouté un fichier dans `src/`, lance `python3 scripts/maj-cache.py` pour le mettre dans le cache hors ligne (un test le vérifie).
 - Conception et plans : `docs/`.
 - Réponds à l'utilisateur en français, sur un ton simple : il joue sur iPhone, sans ordinateur.

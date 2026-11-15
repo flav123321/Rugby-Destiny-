@@ -3,15 +3,24 @@ import { clampStat } from './player.js';
 
 export const PERIODES = ['presaison', 'automne', 'hiver', 'printemps', 'ete'];
 export const PERIODE_LABELS = { presaison: 'Présaison', automne: 'Automne', hiver: 'Hiver', printemps: 'Printemps', ete: 'Été' };
-export const eventById = (id) => EVENTS.find(e => e.id === id);
+const val = (x, v) => (typeof x === 'function' ? x(v ?? {}) : x);
+/** Rend un événement concret : les textes « vivants » (fonctions) sont remplis avec ses variables (noms, clubs…). */
+export function resolveEvent(tpl, vars = null) {
+  if (!tpl) return null;
+  return { ...tpl, vars, texte: val(tpl.texte, vars),
+    choix: tpl.choix.map(c => ({ ...c, label: val(c.label, vars), effets: { ...c.effets, texteResultat: val(c.effets.texteResultat, vars) } })) };
+}
+export const eventById = (id, vars = null) => resolveEvent(EVENTS.find(e => e.id === id), vars);
 
 /** Un événement vu ne revient pas avant DELAI_REPETITION saisons (sauf si plus rien d'autre n'est possible). */
-export const DELAI_REPETITION = 2;
+export const DELAI_REPETITION = 4;
 
 export function drawEvent(state, periode, rng) {
   const vus = state.vus ?? {};
   const recent = (e) => vus[e.id] !== undefined && (state.annee ?? 0) - vus[e.id] < DELAI_REPETITION;
-  return tirage(state, periode, rng, recent) ?? tirage(state, periode, rng, () => false);
+  const tpl = tirage(state, periode, rng, recent) ?? tirage(state, periode, rng, () => false);
+  if (!tpl) return null;
+  return resolveEvent(tpl, tpl.vars ? tpl.vars(state, rng) : null);
 }
 
 function tirage(state, periode, rng, exclu) {
@@ -21,11 +30,15 @@ function tirage(state, periode, rng, exclu) {
     (!e.periode || e.periode === periode) &&
     !(state.vusSaison ?? []).includes(e.id) &&
     (apte || !e.tags?.includes('requiertApte')) &&
-    (!e.condition || e.condition(state)));
+    (!e.condition || e.condition(state)) &&
+    (!e.vars || e.vars(state, { next: () => 0, int: (a) => a, pick: (x) => x[0], chance: () => false }) !== null));
   if (!pool.length) return null;
-  const total = pool.reduce((s, e) => s + (e.poids ?? 1), 0);
+  // les événements jamais vus sortent trois fois plus souvent
+  const vus = state.vus ?? {};
+  const poids = (e) => (e.poids ?? 1) * (vus[e.id] === undefined ? 3 : 1);
+  const total = pool.reduce((s, e) => s + poids(e), 0);
   let r = rng.next() * total;
-  for (const e of pool) { r -= e.poids ?? 1; if (r <= 0) return e; }
+  for (const e of pool) { r -= poids(e); if (r <= 0) return e; }
   return pool.at(-1);
 }
 

@@ -12,7 +12,7 @@ export function renderJeu(ui) {
   if (ui.resultat) {
     main = `<div class="card result"><p>${esc(ui.resultat)}</p></div><button class="btn primary" data-action="suite">Continuer</button>`;
   } else if (s.evenementEnCours) {
-    const ev = eventById(s.evenementEnCours);
+    const ev = eventById(s.evenementEnCours, s.evenementVars);
     main = `<div class="card event"><h3>${esc(periode)}</h3><p class="txt">${esc(ev.texte)}</p></div>
       ${ev.choix.map((c, i) => `<button class="btn" data-action="choix" data-v="${i}">${esc(c.label)}</button>`).join('')}`;
   } else {

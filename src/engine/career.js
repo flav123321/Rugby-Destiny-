@@ -3,7 +3,8 @@ import { createPlayer } from './player.js';
 import { overall } from './rating.js';
 import { TOP14 } from '../data/leagues/top14.js';
 import { PROD2 } from '../data/leagues/prod2.js';
-import { clubById, leagueOfClub, leagueById, allClubs } from '../data/leagues/index.js';
+import { clubById, leagueOfClub, leagueById, allClubs, setMonde, mondeInitial } from '../data/leagues/index.js';
+import { evolveMonde } from './monde.js';
 import { academyStep, newAcademyState, saisonLabel, CATEGORIES, matchListe, pushListe } from './academy.js';
 
 import { PERIODES, drawEvent, applyChoice, eventById } from './events.js';
@@ -46,7 +47,7 @@ function withRng(state, fn) {
   const out = fn(rng);
   return { ...out, rngState: rng.getState() };
 }
-const toId = (s) => ({ ...s, evenementEnCours: s.evenementEnCours ? s.evenementEnCours.id : null });
+const toId = (s) => ({ ...s, evenementEnCours: s.evenementEnCours ? s.evenementEnCours.id : null, evenementVars: s.evenementEnCours?.vars ?? null });
 
 /** 3 centres de formation proposés : un grand club et deux tirés au hasard. */
 export function academyClubOffers(rng) {
@@ -67,24 +68,28 @@ export function newCareer(input, seed) {
   const player = { ...createPlayer(rest, rng), clubId };
   const s = newAcademyState(player);
   if (player.pepite) s.journal = ["Les recruteurs parlent déjà de toi comme d'une pépite."];
-  return { version: 1, seed, ...s, clubNom: clubById(clubId).nom, ligue: null, pret: null, contratFin: null, dernierResume: null, rngState: rng.getState() };
+  setMonde(null);
+  return { version: 1, seed, ...s, monde: mondeInitial(), clubNom: clubById(clubId).nom, ligue: null, pret: null, contratFin: null, dernierResume: null, rngState: rng.getState() };
 }
 
 /** Avance d'une période. Ne fait rien si un choix est en attente. */
 export function advance(state) {
+  setMonde(state.monde);
   if (state.phase === 'bilan') return { ...state, phase: state.phaseApresBilan ?? 'pro', phaseApresBilan: null };
   if (state.evenementEnCours || state.phase === 'offres' || state.phase === 'fin') return state;
   if (state.phase === 'centre') {
     return withRng(state, (rng) => {
       const ev = state.evenementEnCours;
-      const s = academyStep({ ...state, evenementEnCours: ev ? eventById(ev) : null }, rng);
+      const s = academyStep({ ...state, evenementEnCours: ev ? eventById(ev, state.evenementVars) : null }, rng);
       if (s.offresContrat) {
         const last = s.player.historique.at(-1);
         return { ...toId(s), phase: 'offres', dernierResume: { ...last, niveau: CATEGORIES[last.age], club: clubById(s.player.clubId).nom } };
       }
       if (s.annee > state.annee) {
-        // fin d'une saison au centre : bilan avant de continuer
-        return { ...toId(s), phase: 'bilan', phaseApresBilan: 'centre', dernierResume: s.player.historique.at(-1) };
+        // fin d'une saison au centre : les divisions évoluent, bilan avant de continuer
+        const evo = evolveMonde(state.monde ?? mondeInitial(), null, rng);
+        return { ...toId(s), monde: evo.monde, phase: 'bilan', phaseApresBilan: 'centre',
+          dernierResume: { ...s.player.historique.at(-1), mouvements: evo.mouvements, champions: evo.champions } };
       }
       return toId(s);
     });
@@ -153,11 +158,16 @@ function finDeSaison(s, rng) {
     finale: `${clubById(po.finale.home).nom} ${po.finale.scoreHome}-${po.finale.scoreAway} ${clubById(po.finale.away).nom}`,
     relegue: clubById(po.relegue).nom, championAvecLui: po.champion === s.player.clubId, ligueId: league.id,
     niveau: s.pret ? `${league.label} (prêt)` : league.label, tableau: table };
+  const evo = evolveMonde(s.monde ?? mondeInitial(), { leagueId: league.id, table, po }, rng);
+  resume.mouvements = evo.mouvements;
+  resume.champions = evo.champions;
+  const monClub = evo.mouvements.find(m => m.clubId === s.player.clubId && m.vers);
+  if (monClub) resume.monClub = monClub.vers === 'top14' || (monClub.vers === 'prod2' && monClub.de === 'nationale') ? 'monte' : 'descend';
   resume.distinctions = [...distinctions(s, resume, rng, league), ...(s.interSaison ?? []).map(c => c.distinction).filter(Boolean)];
   const { tableau, ...histo } = resume;
   const progressed = progressSeason(s.player, { minutesJouees: s.saisonStats.minutes + (s.saisonStats.espoirs?.minutes ?? 0) / 2 }, rng);
   const player = { ...progressed, age: progressed.age + 1, historique: [...progressed.historique, histo] };
-  const out = { ...s, player, annee: s.annee + 1, periodeIndex: -1, periode: null, vusSaison: [], saisonStats: vide(),
+  const out = { ...s, monde: evo.monde, player, annee: s.annee + 1, periodeIndex: -1, periode: null, vusSaison: [], saisonStats: vide(),
     ligue: null, dernierResume: resume, evenementEnCours: null, interSaison: [] };
   if (s.pret) {
     // retour de prêt au club formateur
@@ -188,15 +198,16 @@ function distinctions(s, r, rng, league) {
 
 export function choose(state, choixIndex) {
   if (!state.evenementEnCours) throw new Error('Aucun événement en cours');
-  const ev = eventById(state.evenementEnCours);
+  const ev = eventById(state.evenementEnCours, state.evenementVars);
   const s = applyChoice(state, ev, choixIndex);
   const prolongation = ev.choix[choixIndex].effets.prolongation;
   const contratFin = prolongation && s.contratFin ? s.contratFin + prolongation : s.contratFin;
-  return { ...s, contratFin, evenementEnCours: null };
+  return { ...s, contratFin, evenementEnCours: null, evenementVars: null };
 }
 
 /** Accepte une offre (fin du centre ou fin de contrat). */
 export function acceptOffer(state, i) {
+  setMonde(state.monde);
   const o = state.offresContrat?.[i];
   if (!o) throw new Error(`Offre invalide : ${i}`);
   const base = { ...state, offresContrat: null, phase: 'pro', periodeIndex: -1, periode: null, saisonStats: vide(), ligue: null };

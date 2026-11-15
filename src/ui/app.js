@@ -6,6 +6,7 @@ import { newCareer, advance, choose, acceptOffer, academyClubOffers, retire } fr
 import { createRng } from '../engine/rng.js';
 import { save, load } from '../engine/save.js';
 import { positionById } from '../data/positions.js';
+import { setMonde } from '../data/leagues/index.js';
 
 const root = document.getElementById('app');
 const ui = { screen: 'accueil', career: null, creation: null, tab: 'saison', resultat: null, sauvegarde: null, stockageKo: false, erreur: false };
@@ -23,6 +24,7 @@ function screenFor() {
 function render() {
   try {
     if (ui.screen === 'accueil') ui.sauvegarde = load(); // toujours la sauvegarde la plus récente
+    setMonde(ui.screen === 'jeu' ? ui.career?.monde : null); // divisions de la saison en cours
     const sc = screenFor();
     root.innerHTML = sc === 'accueil' ? renderAccueil(ui) : sc === 'creation' ? renderCreation(ui)
       : sc === 'offres' ? renderOffres(ui) : sc === 'fin' ? renderFin(ui) : sc === 'bilan' ? renderBilan(ui) : renderJeu(ui);
@@ -53,7 +55,8 @@ const actions = {
   },
   'c-next'() { ui.creation.step = Math.min(5, ui.creation.step + 1); },
   'c-prev'() { if (ui.creation.step === 1) ui.screen = 'accueil'; else ui.creation.step--; },
-  'c-pays'(el) { ui.creation.data.paysCentreId = el.dataset.v; ui.creation.offres = academyClubOffers(createRng(ui.creation.seed)); },
+  'c-pays'(el) {
+    setMonde(null); ui.creation.data.paysCentreId = el.dataset.v; ui.creation.offres = academyClubOffers(createRng(ui.creation.seed)); },
   'c-reset-pays'() { ui.creation.offres = null; },
   'c-club'(el) {
     ui.career = newCareer({ ...ui.creation.data, clubId: el.dataset.v }, ui.creation.seed);

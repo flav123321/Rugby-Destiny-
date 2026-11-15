@@ -13,7 +13,11 @@ function bilanCard(r) {
     ${r.inter ? `<p><b>Sélection nationale</b> : ${r.inter.matchs} matchs · ${r.inter.essais} essai${r.inter.essais > 1 ? 's' : ''} · note moyenne ${r.inter.noteMoyenne ?? '–'}</p>` : ''}
     ${r.u20 ? `<p><b>U20</b> : ${r.u20.matchs} matchs · ${r.u20.essais} essai${r.u20.essais > 1 ? 's' : ''}</p>` : ''}
     ${(r.competitions ?? []).filter(c => c.selectionne || c.niveau === 'A').map(c => `<p class="muted">${c.selectionne ? '🌍' : '📺'} ${esc(c.competition)} : ${esc(c.resultat)}</p>`).join('')}
-    ${(r.distinctions ?? []).map(d => `<p>🏅 <b>${esc(d)}</b></p>`).join('')}</div>` : '';
+    ${(r.distinctions ?? []).map(d => `<p>🏅 <b>${esc(d)}</b></p>`).join('')}
+    ${r.monClub === 'monte' ? '<p>⬆️ <b>Ton club monte en division supérieure !</b></p>' : r.monClub === 'descend' ? '<p>⬇️ <b>Ton club descend en division inférieure.</b></p>' : ''}</div>
+    ${r.mouvements?.length ? `<div class="card"><h3>Montées et descentes</h3>
+      ${r.champions ? `<p class="muted">Champions : Top 14 – ${esc(r.champions.top14)} · Pro D2 – ${esc(r.champions.prod2)} · Nationale – ${esc(r.champions.nationale)}</p>` : ''}
+      ${r.mouvements.map(m => `<p>${m.vers === 'top14' || (m.vers === 'prod2' && m.de === 'nationale') ? '⬆️' : m.vers ? '⬇️' : '🛡️'} ${esc(m.texte)}</p>`).join('')}</div>` : ''}` : '';
 }
 
 export function renderBilan(ui) {
